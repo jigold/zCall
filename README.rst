@@ -1,52 +1,0 @@
---------------------------------------------------------------
-zCall: A Rare Variant Caller for Array-based Genotyping
-
-Author: Jackie Goldstein (jigold@broadinstitute.org)
-Contact: Benjamin Neale (bneale@broadinstitute.org)
-
-*** The Illumina provided Code was provided as-is and with no warranty as to performance and no warranty against it infringing any other party's intellectual property rights.
----------------------------------------------------------------
-
-I. Overview
-zCall is a variant caller specifically designed for calling rare single nucleotide polymorphisms (SNPs) from array-based technology. This caller is implemented as a post-processing step after a default calling algorithm has been applied such as Illumina’s GenCall algorithm. zCall uses the intensity profile of the common allele homozygote cluster to define the location of the other two genotype clusters. The outputs of zCall are either a PLINK PED and MAP file or a TPED and TFAM file depending on what the input files to zCall are. See http://pngu.mgh.harvard.edu/~purcell/plink/ for more details about PLINK.
-
-
-II. Implementation
-zCall is implemented as a set of Python scripts and one R script that are run on the command line. The scripts have been written to work with Illumina’s software output files such as an EGT file, GTC files, a .bpm.csv file, and a GenomeStudio Report. Examples of input files are located in the examples directory. We have written three versions of zCall that work with different input files based on whether AutoCall or GenomeStudio has been used for the initial calling:Version 1 (AutoCall): 
-Input files are Illumina’s binary GTC files, a .bpm.csv file, and a binary EGT file and the output files are a PLINK .ped and .map file. This version should be used after AutoCall has been run. Because the inputs are GTC files, calling of samples can be parallelized and the need to upload IDAT files into GenomeStudio can be avoided. In addition, this version avoids making large intermediate files with genotypes and intensity data.Version 2 (GenomeStudio - Thresholds derived from EGT file): 
-Input files are Illumina’s binary EGT file, an Illumina probe manifest file, and an Illumina GenomeStudio final report with the following fields: Name<tab>Sample1.GType<tab>Sample1.X<tab>Sample1.Y<tab>Sample2.GType<tab>Sample2.X<tab>Sample2.Y...
-The output files are PLINK .tped and .tfam files where the alleles are A/B. PLINK can later be used to transform the A/B alleles into A,T,G,C using the --update-alleles flag.
-
-This version requires using GenomeStudio to generate a final report, which can be on the order of 40 GB for 5000 samples. However, it makes use of the fact that an EGT file already has the calculated means and standard deviations of each cluster when the initial clustering was done. Therefore,  if a cluster file has already been generated with a large number of samples, then using the existing cluster file to generate the thresholds is much faster and more accurate than calculating the mean and standard deviation of each cluster from the GenomeStudio report.
-
-Version 3 (GenomeStudio - Thresholds derived from GenomeStudio report):
-Input files are an Illumina probe manifest file and an Illumina GenomeStudio final report with the following format where X and Y are normalized intensities (0-2 rather than 0 - 20000): Name<tab>Sample1.GType<tab>Sample1.X<tab>Sample1.Y<tab>Sample2.GType<tab>Sample2.X<tab>Sample2.Y...
-The output files are PLINK .tped and .tfam files where the alleles are A/B. PLINK can later be used to transform the A/B alleles into A,T,G,C using the --update-alleles flag.
-
-This version runs the slowest of the three and requires generating large intermediate files from Illumina's GenomeStudio as in Version 2. All thresholds are derived from the data in the GenomeStudio report rather than from an EGT file as in Versions 1 and 2. We've found that this works best when the EGT file does not have a lot of samples (less than a 1000) or there are concerns about whether the intensity profile of the samples to be called match the intensity profile of the samples used for generating the EGT file.
-
-
-III. Method
-
-zCall works by using the intensity profile of the common allele homozygote cluster, as defined by another calling algorithm, to derive two thresholds (t_x and t_y) which divide the intensity space into four quadrants. Genotypes are then assigned to points based on their position with respect to the thresholds. An overview of the steps needed to implement zCall is listed below. However, for more specific implementation details (i.e names of scripts to use), see the README contained in the folder for each version of zCall.
-
-0. Data should be filtered such that samples have been QC'd for heterozygosity and call rate and sites have been QC'd for call rate and p_HWE > 1e-5.
-
-1. The mean and standard deviation of the homozygote clusters are calculated for common sites (MAF > 5%) with at least 10 points in each homozygote cluster and are in HWE (p > 1e-5).
-
-2. Linear regression is used to derive a linear model relating the means and standard deviations (calculated in Step 1) from the X intensity to the Y intensity. There are two options: weighted linear regression based on the size of the homozygote clusters or unweighted linear regression
-
-3. The optimal value of z is calculated by trying different values of z [ex: 3-15 in increments of 1] and choosing the value of z that gives the highest global concordance between the original caller and zCall for common sites (MAF > 5%) that have at least 10 points in each homozygote cluster and are in HWE (p > 1e-5). This step could be avoided by using the default value of z = 7 for Step 4, which we have found to work best when zCall was applied to real data.
-
-4. Thresholds are derived using the optimal value of z from Step 3 and the linear model from Step 2.
-
-5. Genotypes are assigned based on where points are located with respect to the two thresholds.
-
-6. Analysts should only consider sites and samples that meet QC criteria from the original calls.
-
-
-IV. Miscellaneous
-
-The run time and memory requirements are dependent on the number of probes and samples. For the Illumina HumanExome BeadChip, the run time to call one sample from a GTC file is 15 seconds and requires about 3 MB of memory (Max Memory Swap = 39 MB). For 971 samples calling from GTC files and generating one large PED file is 145 MB of memory (Max Memory Swap = 438 MB). For 384 samples from an Illumina Genome Studio report, it takes about 13 minutes to generate a new TPED and TFAM file with predetermined thresholds and 129 MB of memory (Max Memory Swap = 289 MB). It is assumed that the number, order, and names of sites match between the EGT, GTC, GenomeStudio report, and .bpm.csv files.
-
-For best results, we recommend using approximately 1000 points to derive the thresholds. This can either be an EGT file clustered with 1000 samples or from a GenomeStudio report with 1000 samples. We found that we got the best results using a z-score threshold equal to 7. When using GenCall to generate the original genotype calls, we got the best results when using a smaller cluster file (90 samples) rather than a larger cluster file (9,479 samples). For more details, see Goldstein,J. et al. (2012) zCall: A Rare Variant Caller for Array-based Genotyping. Submitted to Bioinformatics.

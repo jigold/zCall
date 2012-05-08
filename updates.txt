@@ -1,0 +1,22 @@
+----------------------------------------------------------------------------
+zCall: A Rare Variant Caller for Array-Based Genotyping
+
+Author: Jackie Goldstein - jigold@broadinstitute.org
+Contact: Benjamin Neale - bneale@broadinstitute.org
+May 8th, 2012
+
+***The Illumina provided Code was provided as-is and with no warranty as to performance and no warranty against it infringing any other party's intellectual property rights.
+---------------------------------------------------------------------------
+
+Updates:
+
+May 8th, 2012:
+
+1. Fixed scripts to account for sites where <= 2 points were assigned to both homozygote clusters.
+
+2. Set default AutoCall PED file (Version 1) to output A/B alleles rather than A,T,G,C alleles so that the output of all three versions is standard. This also avoids differences in reference strand used when comparing calls across sites. To revert back to outputting A,T,G,C alleles, look at zCall.py and uncomment/comment the specified lines.
+
+3. Updated input GenomeStudio report format to include the chromosome and position in order to avoid using the probe manifest file. The input should now resemble the following:
+
+Name<tab>Chr<tab>Position<tab>Sample1.GType<tab>Sample1.X<tab>Sample1.Y
+rs000001<tab>1<tab>900001<tab>NC<tab>0.0000<tab>0.0000

@@ -16,7 +16,9 @@ May 8th, 2012:
 
 2. Set default AutoCall PED file (Version 1) to output A/B alleles rather than A,T,G,C alleles so that the output of all three versions is standard. This also avoids differences in reference strand used when comparing calls across sites. To revert back to outputting A,T,G,C alleles, look at zCall.py and uncomment/comment the specified lines.
 
-3. Updated input GenomeStudio report format to include the chromosome and position in order to avoid using the probe manifest file. The input should now resemble the following:
+3. Updated input GenomeStudio report format (Version 2 & 3) to include the chromosome and position in order to avoid using the probe manifest file. The input should now resemble the following:
 
 Name<tab>Chr<tab>Position<tab>Sample1.GType<tab>Sample1.X<tab>Sample1.Y
 rs000001<tab>1<tab>900001<tab>NC<tab>0.0000<tab>0.0000
+
+This affects the input parameters to convertReportToTPED.py and zCall.py

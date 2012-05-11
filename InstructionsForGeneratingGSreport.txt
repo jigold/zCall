@@ -1,0 +1,18 @@
+----------------------------------------------------------------------------
+zCall: A Rare Variant Caller for Array-Based Genotyping
+(GenomeStudio Report Version - without the use of an EGT file)
+
+Author: Jackie Goldstein - jigold@broadinstitute.org
+Contact: Benjamin Neale - bneale@broadinstitute.org
+May 8th, 2012
+
+***The Illumina provided Code was provided as-is and with no warranty as to performance and no warranty against it infringing any other party's intellectual property rights.
+----------------------------------------------------------------------------
+
+Directions for Generating GenomeStudio Report Input to zCall:
+
+In GenomeStudio select 'Full Data Table' tab.
+Click on 'Column Chooser' icon.
+In Displayed Columns select 'Name', 'Chr','Position', and all your samples.
+In Displayed Subcolumns select 'GType', 'X' and 'Y'.
+Hit OK then click on 'Export displayed data to a file' icon.

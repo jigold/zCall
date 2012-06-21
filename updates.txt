@@ -22,3 +22,13 @@ Name<tab>Chr<tab>Position<tab>Sample1.GType<tab>Sample1.X<tab>Sample1.Y
 rs000001<tab>1<tab>900001<tab>NC<tab>0.0000<tab>0.0000
 
 This affects the input parameters to convertReportToTPED.py and zCall.py
+
+May 21st, 2012:
+
+1. Added a minimum signal intensity threshold filter for No Calls in the findThresholds.py script with the -I flag. Default is 0.2. To recall all sites, use -I 0.0
+
+June 21st, 2012:
+
+1. There is an error in the README for Versions 2 and 3. The example usage for the calibrateZ.py script should read:
+
+python calibrateZ.py -R my.report -T my.thresholds -E my.egt > my.concordance.stats

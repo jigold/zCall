@@ -1,5 +1,7 @@
 #! /usr/bin/python
 
+# Thank you to Josh Randall (Sanger) for providing this script!
+
 import sys
 
 reportFileName = sys.argv[1]

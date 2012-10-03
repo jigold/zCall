@@ -32,3 +32,12 @@ June 21st, 2012:
 1. There is an error in the README for Versions 2 and 3. The example usage for the calibrateZ.py script should read:
 
 python calibrateZ.py -R my.report -T my.thresholds -E my.egt > my.concordance.stats
+
+October 3rd, 2012:
+
+1. Updated the website so it's easier to find files
+
+2. Updated the main README with the reference to the zCall publication in Bioinformatics. Also added some clarifying points based on responses from users such as it is not necessary to do site QC before using zCall (sample QC is necessary), Version 3 is the preferred version to use, and the example input files are not meant for testing (they won't work).
+
+2. Added a new zip file to each folder with minor updates to README files. Also fixed a small bug in the calibrateZ.py script for Version 3 and the sampleConcordance.py script for Version 1. (The bug caused the script to get killed when there was an "NA" in the thresholds file) You can either download the latest zip file bundle for each version (VersionX.3) or just download the scripts with the bug fixes from the additionalScripts/ folder.
+

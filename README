@@ -1,11 +1,11 @@
 --------------------------------------------------------------
 zCall: A Rare Variant Caller for Array-based Genotyping
 
-Author: Jackie Goldstein (jigold@broadinstitute.org)
-Contact: Benjamin Neale (bneale@broadinstitute.org)
+For questions about implementing zCall or reporting problems with the code, please send an email to Jackie Goldstein (jigold@broadinstitute.org). For all other inquiries, please send an email to both Ben Neale (bneale@broadinstitute.org) and Jackie Goldstein (jigold@broadinstitute.org).
 
 *** The Illumina provided Code was provided as-is and with no warranty as to performance and no warranty against it infringing any other party's intellectual property rights.
 
+The paper describing zCall can be found here:
 Goldstein JI, Crenshaw A, Carey J, Grant GB, Maguire J, Fromer M, O'Dushlaine C, Moran JL, Chambert K, Stevens C; Swedish Schizophrenia Consortium; ARRA Autism Sequencing Consortium, Sklar P, Hultman CM, Purcell S, McCarroll SA, Sullivan PF, Daly MJ, Neale BM. zCall: a rare variant caller for array-based genotyping: Genetics and population analysis. Bioinformatics. 2012 Oct 1;28(19):2543-2545. Epub 2012 Jul 27. PubMed PMID: 22843986.
 ---------------------------------------------------------------
 
@@ -14,6 +14,7 @@ I. Overview
 zCall is a variant caller specifically designed for calling rare single nucleotide polymorphisms (SNPs) from array-based technology. This caller is implemented as a post-processing step after a default calling algorithm has been applied such as IlluminaÕs GenCall algorithm. zCall uses the intensity profile of the common allele homozygote cluster to define the location of the other two genotype clusters. The outputs of zCall are either a PLINK PED and MAP file or a TPED and TFAM file depending on what the input files to zCall are. See http://pngu.mgh.harvard.edu/~purcell/plink/ for more details about PLINK.
 
 Three different versions of zCall have been provided depending on whether AutoCall or GenomeStudio has been run. Each version includes a set of Python scripts and an R script as well as line-by line instructions on how to run zCall located in the README file. Scripts are available at https://github.com/jigold/zCall
+
 
 II. Implementation
 zCall is implemented as a set of Python scripts and one R script that are run on the command line. The scripts have been written to work with IlluminaÕs software output files such as an EGT file, GTC files, a .bpm.csv file, and a GenomeStudio Report. Examples of input files are located in the examples directory. We have written three versions of zCall that work with different input files based on whether AutoCall or GenomeStudio has been used for the initial calling:Version 1 (AutoCall): 
@@ -28,12 +29,14 @@ The output files are PLINK .tped and .tfam files where the alleles are A/B. PLIN
 
 This version runs the slowest of the three and requires generating large intermediate files from Illumina's GenomeStudio as in Version 2. All thresholds are derived from the data in the GenomeStudio report rather than from an EGT file as in Versions 1 and 2. We've found that this works best when the EGT file does not have a lot of samples (less than a 1000) or there are concerns about whether the intensity profile of the samples to be called match the intensity profile of the samples used for generating the EGT file.
 
+*** We recommend using Version 3 rather than Version 2 for GenomeStudio users ***
+
 
 III. Method
 
-zCall works by using the intensity profile of the common allele homozygote cluster, as defined by another calling algorithm, to derive two thresholds (t_x and t_y) which divide the intensity space into four quadrants. Genotypes are then assigned to points based on their position with respect to the thresholds. An overview of the steps needed to implement zCall is listed below. However, for more specific implementation details (i.e names of scripts to use), see the README contained in the folder for each version of zCall.
+zCall works by using the intensity profile of the common allele homozygote cluster, as defined by another calling algorithm, to derive two thresholds (t_x and t_y) which divide the intensity space into four quadrants. Genotypes are then assigned to points based on their position with respect to the thresholds. Please see Goldstein,J.I. et al. (2012) zCall: A Rare Variant Caller for Array-based Genotyping. Bioinformatics: 28(19):2543-2545 for more information. An overview of the steps needed to implement zCall is listed below. However, for more specific implementation details (i.e names of scripts to use), see the README contained in the folder for each version of zCall.
 
-0. Data should be filtered such that samples have been QC'd for heterozygosity and call rate and sites have been QC'd for call rate and p_HWE > 1e-5.
+0. Data should be filtered such that samples have been QC'd for heterozygosity and call rate. (*** Sites can be filtered for p_HWE and call rate before running zCall or they can be filtered after running zCall in Step 6***)
 
 1. The mean and standard deviation of the homozygote clusters are calculated for common sites (MAF > 5%) with at least 10 points in each homozygote cluster and are in HWE (p > 1e-5).
 
@@ -52,4 +55,4 @@ IV. Miscellaneous
 
 The run time and memory requirements are dependent on the number of probes and samples. For the Illumina HumanExome BeadChip, the run time to call one sample from a GTC file is 15 seconds and requires about 3 MB of memory (Max Memory Swap = 39 MB). For 971 samples calling from GTC files and generating one large PED file is 145 MB of memory (Max Memory Swap = 438 MB). For 384 samples from an Illumina Genome Studio report, it takes about 13 minutes to generate a new TPED and TFAM file with predetermined thresholds and 129 MB of memory (Max Memory Swap = 289 MB). It is assumed that the number, order, and names of sites match between the EGT, GTC, GenomeStudio report, and .bpm.csv files.
 
-For best results, we recommend using at least 1000 samples to derive the thresholds. This can either be an EGT file clustered with 1000 samples or from a GenomeStudio report with 1000 samples. We found that we got the best results using a z-score threshold equal to 7. When using GenCall to generate the original genotype calls, we got the best results when using a smaller cluster file (90 samples) rather than a larger cluster file (9,479 samples).
+For best results, we recommend using at least 1000 samples to derive the thresholds. This can either be an EGT file clustered with 1000 samples or from a GenomeStudio report with 1000 samples. We found that we got the best results using a z-score threshold equal to 7; however we recommend using the calibration step to verify that 7 will work well for your data. When using GenCall to generate the original genotype calls, we got the best results when using a smaller cluster file (90 samples) rather than a larger cluster file (9,479 samples). Please see Goldstein,J.I. et al. (2012) zCall: A Rare Variant Caller for Array-based Genotyping. Bioinformatics: 28(19):2543-2545 for more information.

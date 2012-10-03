@@ -13,7 +13,7 @@ Goldstein JI, Crenshaw A, Carey J, Grant GB, Maguire J, Fromer M, O'Dushlaine C,
 I. Overview
 zCall is a variant caller specifically designed for calling rare single nucleotide polymorphisms (SNPs) from array-based technology. This caller is implemented as a post-processing step after a default calling algorithm has been applied such as Illumina’s GenCall algorithm. zCall uses the intensity profile of the common allele homozygote cluster to define the location of the other two genotype clusters. The outputs of zCall are either a PLINK PED and MAP file or a TPED and TFAM file depending on what the input files to zCall are. See http://pngu.mgh.harvard.edu/~purcell/plink/ for more details about PLINK.
 
-Three different versions of zCall have been provided depending on whether AutoCall or GenomeStudio has been run. Each version includes a set of Python scripts and an R script as well as line-by line instructions on how to run zCall located in the README file. Scripts are available at https://github.com/jigold/zCall
+Three different versions of zCall have been provided depending on whether AutoCall or GenomeStudio has been run. Each version includes a set of Python scripts and an R script as well as line-by line instructions on how to run zCall located in the README file. Scripts are available at https://github.com/jigold/zCall. Examples of input file format are available at https://github.com/jigold/zCall; however, these files are subsets of actual inputs and are not usable for testing out the code.
 
 
 II. Implementation

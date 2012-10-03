@@ -7,38 +7,34 @@ import sys
 reportFileName = sys.argv[1]
 dropSamplesFileName = sys.argv[2]
 
-# read sample exclusion file and populate samples dictionary 
-dropSamples = dict() 
+# read sample exclusion file and populate samples set 
+dropSamples = set() 
 for line in open(dropSamplesFileName, 'r'):
-	line = line.replace("\n", "")
-	dropSamples[line] = 1
+	line = line.strip()
+	dropSamples.add(line)
  
-# open file and connect to iterator
-reportIter = iter(open(reportFileName, 'r').readline, '')
+# open file => returns an iterator
+reportFile = open(reportFileName, 'r')
 
-dropColumns = dict()
-# read first line and fill dropColumns with column indices to drop 
-headerline = reportIter.next() 
-headerline = headerline.replace("\n", "") 
-headers = headerline.split("\t") 
-headerout = [headers[0],headers[1],headers[2]]
+okColumns = []
+# read first line and fill okColumns with column indices to be kept (the columns not present in the dropSamples)
+headerline = reportFile.next() 
+headers = headerline.strip().split("\t") 
+headerout = headers[:3]
 for i in range(3, len(headers)):
 	id = headers[i].split(".")[0]
-	if id in dropSamples:
-		dropColumns[i] = 1;
-	else:
+	if id not in dropSamples:
+		okColumns.append(i)
 		headerout.append(headers[i])
 
 # print new header
 print "\t".join(headerout)
  
-# read the rest of the report file lines, dropping columns present in dropColumns dict
-for line in reportIter:
-	line = line.replace("\n", "")
-	fields = line.split("\t")
-	out = [fields[0],fields[1],fields[2]]
-	for i in range(3, len(fields)):
-		if i not in dropColumns:
-			out.append(fields[i])
+# read the rest of the report file lines, printing only the important columns (okColumns) 
+for line in reportFile:
+	fields = line.strip().split("\t")
+	out = fields[:3]
+	for i in okColumns:
+		out.append(fields[i])
 	print "\t".join(out)
 

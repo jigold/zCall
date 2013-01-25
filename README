@@ -11,14 +11,22 @@ Goldstein JI, Crenshaw A, Carey J, Grant GB, Maguire J, Fromer M, O'Dushlaine C,
 
 
 I. Overview
-zCall is a variant caller specifically designed for calling rare single nucleotide polymorphisms (SNPs) from array-based technology. This caller is implemented as a post-processing step after a default calling algorithm has been applied such as Illumina’s GenCall algorithm. zCall uses the intensity profile of the common allele homozygote cluster to define the location of the other two genotype clusters. The outputs of zCall are either a PLINK PED and MAP file or a TPED and TFAM file depending on what the input files to zCall are. See http://pngu.mgh.harvard.edu/~purcell/plink/ for more details about PLINK.
+
+zCall is a variant caller specifically designed for calling rare single nucleotide polymorphisms (SNPs) from array-based technology. This caller is implemented as a post-processing step after a default calling algorithm has been applied such as Illumina’s GenCall algorithm. zCall uses the intensity profile of the common allele homozygote cluster to define the location of the other two genotype clusters. The outputs of zCall are either a PLINK PED and MAP file or a TPED and TFAM file depending on what the input files to zCall are. See http://pngu.mgh.harvard.edu/~purcell/plink/ for more details about PLINK.
 
 Three different versions of zCall have been provided depending on whether AutoCall or GenomeStudio has been run. Each version includes a set of Python scripts and an R script as well as line-by line instructions on how to run zCall located in the README file. Scripts are available at https://github.com/jigold/zCall. Examples of input file format are available at https://github.com/jigold/zCall; however, these files are subsets of actual inputs and are not usable for testing out the code.
 
+See Section (V) below for additional notes on the Git repository structure.
+
 
 II. Implementation
-zCall is implemented as a set of Python scripts and one R script that are run on the command line. The scripts have been written to work with Illumina’s software output files such as an EGT file, GTC files, a .bpm.csv file, and a GenomeStudio Report. Examples of input files are located in the examples directory. We have written three versions of zCall that work with different input files based on whether AutoCall or GenomeStudio has been used for the initial calling:Version 1 (AutoCall): 
-Input files are Illumina’s binary GTC files, a .bpm.csv file, and a binary EGT file and the output files are a PLINK .ped and .map file. This version should be used after AutoCall has been run. Because the inputs are GTC files, calling of samples can be parallelized and the need to upload IDAT files into GenomeStudio can be avoided. In addition, this version avoids making large intermediate files with genotypes and intensity data.Version 2 (GenomeStudio - Thresholds derived from EGT file): 
+
+zCall is implemented as a set of Python scripts and one R script that are run on the command line. The scripts have been written to work with Illumina’s software output files such as an EGT file, GTC files, a .bpm.csv file, and a GenomeStudio Report. Examples of input files are located in the examples directory. We have written three versions of zCall that work with different input files based on whether AutoCall or GenomeStudio has been used for the initial calling:
+
+Version 1 (AutoCall): 
+Input files are Illumina’s binary GTC files, a .bpm.csv file, and a binary EGT file and the output files are a PLINK .ped and .map file. This version should be used after AutoCall has been run. Because the inputs are GTC files, calling of samples can be parallelized and the need to upload IDAT files into GenomeStudio can be avoided. In addition, this version avoids making large intermediate files with genotypes and intensity data.
+
+Version 2 (GenomeStudio - Thresholds derived from EGT file): 
 Input files are Illumina’s binary EGT file, an Illumina probe manifest file, and an Illumina GenomeStudio final report with the following fields: genotype, normalized X intensity, and normalized Y intensity where the normalized intensities are between 0 and 2. The output files are PLINK .tped and .tfam files where the alleles are A/B. PLINK can later be used to transform the A/B alleles into A,T,G,C using the --update-alleles flag.
 
 This version requires using GenomeStudio to generate a final report, which can be on the order of 40 GB for 5000 samples. However, it makes use of the fact that an EGT file already has the calculated means and standard deviations of each cluster when the initial clustering was done. Therefore, if a cluster file has already been generated with a large number of samples, then using the existing cluster file to generate the thresholds is much faster and more accurate than calculating the mean and standard deviation of each cluster from the GenomeStudio report.
@@ -51,8 +59,22 @@ zCall works by using the intensity profile of the common allele homozygote clust
 6. Analysts should only consider sites and samples that meet QC criteria from the original calls.
 
 
-IV. Miscellaneous
+IV. Miscellaneous operational notes
 
 The run time and memory requirements are dependent on the number of probes and samples. For the Illumina HumanExome BeadChip, the run time to call one sample from a GTC file is 15 seconds and requires about 3 MB of memory (Max Memory Swap = 39 MB). For 971 samples calling from GTC files and generating one large PED file is 145 MB of memory (Max Memory Swap = 438 MB). For 384 samples from an Illumina Genome Studio report, it takes about 13 minutes to generate a new TPED and TFAM file with predetermined thresholds and 129 MB of memory (Max Memory Swap = 289 MB). It is assumed that the number, order, and names of sites match between the EGT, GTC, GenomeStudio report, and .bpm.csv files.
 
-For best results, we recommend using at least 1000 samples to derive the thresholds. This can either be an EGT file clustered with 1000 samples or from a GenomeStudio report with 1000 samples. We found that we got the best results using a z-score threshold equal to 7; however we recommend using the calibration step to verify that 7 will work well for your data. When using GenCall to generate the original genotype calls, we got the best results when using a smaller cluster file (90 samples) rather than a larger cluster file (9,479 samples). Please see Goldstein,J.I. et al. (2012) zCall: A Rare Variant Caller for Array-based Genotyping. Bioinformatics: 28(19):2543-2545 for more information.
+For best results, we recommend using at least 1000 samples to derive the thresholds. This can either be an EGT file clustered with 1000 samples or from a GenomeStudio report with 1000 samples. We found that we got the best results using a z-score threshold equal to 7; however we recommend using the calibration step to verify that 7 will work well for your data. When using GenCall to generate the original genotype calls, we got the best results when using a smaller cluster file (90 samples) rather than a larger cluster file (9,479 samples). Please see Goldstein,J.I. et al. (2012) zCall: A Rare Variant Caller for Array-based Genotyping. Bioinformatics: 28(19):2543-2545 for more information.
+
+
+V. Git repository structure
+
+zCall was originally committed to Github as a collection of .zip archives.  There is one directory for each version of zCall:  AutoCall, GenomeStudio_EGT, and GenomeStudio (non-EGT).  In turn, each directory contains multiple updates for a particular version, and each update is a separate .zip file.
+
+The top-level "src" directory is intended to contain the individual files making up zCall, as opposed to .zip archives.  This will enable changes to each file to be tracked using git.  The code in src is based on zCall_Version1.3_AutoCall.zip as of 2013-01-24.  It has been modified and extended for use in the Wellcome Trust Sanger Institute Genotyping Pipeline:  https://github.com/wtsi-npg/genotyping
+
+The code in src could undergo additional modifications, for example to combine the functionality of the three original versions of zCall into a single codebase.
+
+As noted above, zCall was originally written by Jackie Goldstein (jigold@broadinstitute.org) et al.  The src directory is by Iain Bancarz (ibancarz@sanger.ac.uk).
+
+
+----------------------------------------------------------------------------

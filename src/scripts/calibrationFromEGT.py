@@ -59,7 +59,7 @@ class calibration:
         thresholds = self.thresholdFileName(egtPath, zScore)
         cmdList = [scriptDir+'/findMeanSD.py -E '+egtPath+' > '+meanSd,
                    'bash -c "'+self.rScript+' '+scriptDir+'/findBetas.r '+\
-                       meanSd+' '+betas+' 1 " 2> '+tempDir+'/r_error.txt',
+                       meanSd+' '+betas+' 1 " &> '+tempDir+'/rscript.log',
                    scriptDir+'/findThresholds.py -B '+betas+' -E '+egtPath+\
                        ' -Z '+str(zScore)+' > '+outDir+'/'+thresholds,
                    ] # findBetas.r command uses bash to redirect stderr
@@ -83,7 +83,7 @@ def main():
     egt = os.path.abspath(args['egt'])
     out = os.path.abspath(args['out'])
     z = args['zstart']
-    cal = calibration()
+    cal = calibration(os.path.abspath(args['config']))
     for i in range(args['ztotal']):
         cal.run(egt, z, out, args['verbose'])
         z += 1
@@ -96,6 +96,10 @@ def validate_args():
                         help="Path to .egt input file.")
     parser.add_argument('--out', metavar="DIR", default=".",
                         help="Directory for output; defaults to current working directory.  Filename(s) will be of the form <prefix>_z<zscore>_thresholds.txt, for an input file of the form <prefix>.egt")
+    configDefault = os.path.join(sys.path[0], '../etc/config.ini')
+    configDefault = os.path.abspath(configDefault)
+    parser.add_argument('--config', metavar="PATH", default=configDefault,
+                        help="Path to .ini config file. Default = etc/config.ini")
     parser.add_argument('--zstart', metavar="INT", default=7, type=int,
                     help='Starting z score. Default = %(default)s')
     parser.add_argument('--ztotal', metavar="INT", default=1, type=int,
@@ -106,6 +110,7 @@ def validate_args():
     # validate arguments
     egt = args['egt']
     out = args['out']
+    config = args['config']
     if not os.access(egt, os.R_OK):
         raise OSError("Cannot read .egt input path \""+egt+"\"")
     if not os.path.exists(out):
@@ -114,6 +119,8 @@ def validate_args():
         raise OSError("Output path \""+out+"\" is not a directory.")
     elif not os.access(out, os.W_OK):
         raise OSError("Cannot write to output directory \""+out+"\"")
+    if not os.access(config, os.R_OK):
+        raise OSError("Cannot read config path \""+config+"\"")
     if args['ztotal']<1 or args['zstart']<1:
         raise ValueError("Invalid zstart or ztotal option.")
     return args

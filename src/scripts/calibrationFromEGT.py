@@ -6,44 +6,21 @@
 # Iain Bancarz, ib5@sanger.ac.uk
 # January 2013
 
-import os, re, sys, getopt, tempfile
+import os, re, sys, tempfile
 from ConfigParser import ConfigParser
+try: 
+    import argparse     # optparse is deprecated, using argparse instead
+except ImportError: 
+    sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
+    sys.exit(1)
 
-# optparse is deprecated; using getopt for compatibility with Python < 2.7
-
-defaultZstart = 7
-defaultZincr = 1
-defaultZtotal = 1
-
-help = """Usage: calibration.py [options]
-
-Generates threshold files for use with the zcall genotype caller.  Inputs are 
-a .egt file and one or more Z score parameters.  The .egt file is a 
-proprietary Illumina binary file format, containing typical means and 
-standard deviations for intensity clusters.  An .egt file is supplied by 
-Illumina for its own genotyping chips, or it may be generated using the 
-GenomeStudio software for custom probe sets.
-
-Options:
---egt      Path to .egt input file.
---out      Directory for output file(s).  Filename(s) will be of the form 
-           <prefix>_z<zscore>_thresholds.txt, for an input file of the form
-           <prefix>.egt 
---zstart   Starting z score.  Default = """+str(defaultZstart)+"""
---ztotal   Total number of z scores to generate.  Default = """+\
-    str(defaultZtotal)+"""
---zincr    Increment between z scores, if thresholds are to be generated for 
-           more than one score.  Default = """+str(defaultZincr)+"""
---verbose  Print additional status information to stderr
-
+"""
 Calibration procedure:
 1. Run findMeanSD.py on given EGT file.  Outputs mean_sd.txt
 2. Run findBetas.r on output from (1). Outputs betas.txt
 3. Run findThresholds.py on EGT file and betas.txt, with given Z score(s).
 Outputs from (1) and (2) are written to a temporary directory, deleted on exit.
-"""
 
-"""
 Recommended default Z score = 7.  Suggested range of alternatives = 3 to 15.
 
 TODO
@@ -74,33 +51,72 @@ class calibration:
         scriptDir = os.path.abspath(sys.path[0])
         tempDir = tempfile.mkdtemp(prefix='zcall_')
         if verbose:
-            sys.stderr.write("Writing temporary files to "+tempDir+"\n")
+            msg = "Calibrating zCall: zscore = "+str(zScore)+"\n"+\
+                "Writing temporary files to "+tempDir+"\n"
+            sys.stderr.write(msg)
         meanSd = tempDir+'/mean_sd.txt'
         betas = tempDir+'/betas.txt'
         thresholds = self.thresholdFileName(egtPath, zScore)
         cmdList = [scriptDir+'/findMeanSD.py -E '+egtPath+' > '+meanSd,
-                   self.rScript+' '+scriptDir+'/findBetas.r '+meanSd+' '+\
-                       betas+' 1',
+                   'bash -c "'+self.rScript+' '+scriptDir+'/findBetas.r '+\
+                       meanSd+' '+betas+' 1 " 2> '+tempDir+'/r_error.txt',
                    scriptDir+'/findThresholds.py -B '+betas+' -E '+egtPath+\
                        ' -Z '+str(zScore)+' > '+outDir+'/'+thresholds,
-                   ]
+                   ] # findBetas.r command uses bash to redirect stderr
+        commandsOK = True
         for cmd in cmdList:
             if verbose: sys.stderr.write(cmd+"\n")
-            os.system(cmd)
-        if verbose: sys.stderr.write("Cleaning up temporary directory.\n")
-        os.system('rm -Rf '+tempDir)
+            status = os.system(cmd)
+            if status!=0: 
+                if verbose: sys.stderr.write("WARNING: Non-zero exit status.\n")
+                commandsOK = False
+        if commandsOK:
+            if verbose: sys.stderr.write("Cleaning up temporary directory.\n")
+            os.system('rm -Rf '+tempDir)
+        elif verbose: 
+            sys.stderr.write("Possible error, retaining temporary directory.\n")
         if verbose: sys.stderr.write("Finished.\n")
 
-
-def main(egtPath, zStart, zIncr, zTotal, verbose=True):
-    z = zStart
+def main():
+    # 'main' method to run script from command line
+    args = validate_args()
+    egt = os.path.abspath(args['egt'])
+    out = os.path.abspath(args['out'])
+    z = args['zstart']
     cal = calibration()
-    for i in range(zTotal):
-        cal.run(egtPath, z, verbose)
-        z += zIncr
+    for i in range(args['ztotal']):
+        cal.run(egt, z, out, args['verbose'])
+        z += 1
+
+def validate_args():
+    # parse command-line arguments and return dictionary of params
+    description = "Generates threshold files for use with the zCall genotype caller.  Inputs are an .egt file and one or more Z score values.  The .egt file is a proprietary Illumina binary file format, containing typical means and standard deviations for intensity clusters.  An .egt file is supplied by Illumina for its own genotyping chips, or it may be generated using the GenomeStudio software for custom probe sets."
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('--egt', required=True, metavar="PATH", 
+                        help="Path to .egt input file.")
+    parser.add_argument('--out', metavar="DIR", default=".",
+                        help="Directory for output; defaults to current working directory.  Filename(s) will be of the form <prefix>_z<zscore>_thresholds.txt, for an input file of the form <prefix>.egt")
+    parser.add_argument('--zstart', metavar="INT", default=7, type=int,
+                    help='Starting z score. Default = %(default)s')
+    parser.add_argument('--ztotal', metavar="INT", default=1, type=int,
+                        help='Total number of integer z scores to generate. Default = %(default)s')
+    parser.add_argument('--verbose', action='store_true', default=False,
+                        help="Print status information to standard error")
+    args = vars(parser.parse_args())
+    # validate arguments
+    egt = args['egt']
+    out = args['out']
+    if not os.access(egt, os.R_OK):
+        raise OSError("Cannot read .egt input path \""+egt+"\"")
+    if not os.path.exists(out):
+        raise OSError("Output path \""+out+"\" does not exist.")
+    elif not os.path.isdir(out):
+        raise OSError("Output path \""+out+"\" is not a directory.")
+    elif not os.access(out, os.W_OK):
+        raise OSError("Cannot write to output directory \""+out+"\"")
+    if args['ztotal']<1 or args['zstart']<1:
+        raise ValueError("Invalid zstart or ztotal option.")
+    return args
 
 if __name__ == "__main__":
-    print help
-    sys.exit(0)
-
-    #main(sys.argv[1])
+    main()

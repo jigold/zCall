@@ -70,9 +70,9 @@ V. Git repository structure
 
 zCall was originally committed to Github as a collection of .zip archives.  There is one directory for each version of zCall:  AutoCall, GenomeStudio_EGT, and GenomeStudio (non-EGT).  In turn, each directory contains multiple updates for a particular version, and each update is a separate .zip file.
 
-The top-level "src" directory is intended to contain the individual files making up zCall, as opposed to .zip archives.  This will enable changes to each file to be tracked using git.  The code in src is based on zCall_Version1.3_AutoCall.zip as of 2013-01-24.  It has been modified and extended for use in the Wellcome Trust Sanger Institute Genotyping Pipeline:  https://github.com/wtsi-npg/genotyping
+The "src" directory is intended to contain the individual files making up zCall, as opposed to .zip archives.  This will enable changes to each file to be tracked using git.  The code in src is based on zCall_Version1.3_AutoCall.zip as of 2013-01-24.  It has been modified and extended for use in the Wellcome Trust Sanger Institute Genotyping Pipeline (https://github.com/wtsi-npg/genotyping).
 
-The code in src could undergo additional modifications, for example to combine the functionality of the three original versions of zCall into a single codebase.
+The src codebase can be installed using the Makefile in the top-level directory.  Running "make install $DESTINATION" will install to the zCall subdirectory of $DESTINATION.
 
 As noted above, zCall was originally written by Jackie Goldstein (jigold@broadinstitute.org) et al.  The src directory is by Iain Bancarz (ibancarz@sanger.ac.uk).
 

@@ -4,6 +4,10 @@
 
 # Define 'base' class containing useful methods for zcall scripts
 
+from GTC import *
+from BPM import *
+from EGT import *
+
 class zCallBase:
 
     def __init__(self, threshPath, bpmPath, egtPath):

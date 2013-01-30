@@ -48,34 +48,38 @@ class calibration:
         return 'thresholds_'+name+'_z'+str(zScore).zfill(2)+'.txt'
 
     def run(self, egtPath, zScore=7, outDir='/tmp', verbose=True):
+        outPath = os.path.join(outDir, self.thresholdFileName(egtPath, zScore))
+        if os.path.exists(outPath):
+            # TODO add --force option to force overwriting
+            if verbose: print outPath+" already exists; omitting calibration."
+            return outPath
         scriptDir = os.path.abspath(sys.path[0])
         tempDir = tempfile.mkdtemp(prefix='zcall_')
         if verbose:
             msg = "Calibrating zCall: zscore = "+str(zScore)+"\n"+\
-                "Writing temporary files to "+tempDir+"\n"
-            sys.stderr.write(msg)
+                "Writing temporary files to "+tempDir
+            print msg
         meanSd = tempDir+'/mean_sd.txt'
         betas = tempDir+'/betas.txt'
-        thresholds = self.thresholdFileName(egtPath, zScore)
         cmdList = [scriptDir+'/findMeanSD.py -E '+egtPath+' > '+meanSd,
                    'bash -c "'+self.rScript+' '+scriptDir+'/findBetas.r '+\
                        meanSd+' '+betas+' 1 " &> '+tempDir+'/rscript.log',
                    scriptDir+'/findThresholds.py -B '+betas+' -E '+egtPath+\
-                       ' -Z '+str(zScore)+' > '+outDir+'/'+thresholds,
+                       ' -Z '+str(zScore)+' > '+outPath,
                    ] # findBetas.r command uses bash to redirect stderr
         commandsOK = True
         for cmd in cmdList:
-            if verbose: sys.stderr.write(cmd+"\n")
+            if verbose: print cmd
             status = os.system(cmd)
             if status!=0: 
-                if verbose: sys.stderr.write("WARNING: Non-zero exit status.\n")
+                if verbose: print "WARNING: Non-zero exit status."
                 commandsOK = False
         if commandsOK:
-            if verbose: sys.stderr.write("Cleaning up temporary directory.\n")
+            if verbose: print "Cleaning up temporary directory."
             os.system('rm -Rf '+tempDir)
-        elif verbose: 
-            sys.stderr.write("Possible error, retaining temporary directory.\n")
-        if verbose: sys.stderr.write("Finished.\n")
+        elif verbose: print "Possible error, retaining temporary directory."
+        if verbose: print "Finished calibration."
+        return outPath
 
 def main():
     # 'main' method to run script from command line
@@ -105,7 +109,7 @@ def validate_args():
     parser.add_argument('--ztotal', metavar="INT", default=1, type=int,
                         help='Total number of integer z scores to generate. Default = %(default)s')
     parser.add_argument('--verbose', action='store_true', default=False,
-                        help="Print status information to standard error")
+                        help="Print status information to standard output")
     args = vars(parser.parse_args())
     # validate arguments
     egt = args['egt']

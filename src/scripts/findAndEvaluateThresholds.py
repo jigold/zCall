@@ -27,23 +27,28 @@ class multiEvaluator:
         for i in range(zTotal):
             threshPath = cal.run(egt, z, outDir, verbose)
             eva = evaluator(threshPath, bpm, egt)
-            results = eva.findMultipleConcordances(gtcList, verbose)
+            (includedSNPs, totalSNPs, results) = \
+                eva.findMultipleConcordances(gtcList, verbose)
             for result in results: result.append(z)
             allResults.append(results)
             z += 1
-        headers = ['# Input', 'Include_rate', 'Include_total', 'Concordance',
-                   'Zscore']
+        includeRate = round(float(includedSNPs)/totalSNPs, 3)
         out = open(os.path.join(outDir, outName), 'w')
+        out.write("# EGT "+egt+"\n")
+        out.write("# BPM "+bpm+"\n")
+        out.write("# SNP_INCLUDE_RATE "+str(includeRate)+"\n")
+        headers = ['# Input', 'Concordance', 'Zscore']
         out.write("\t".join(headers)+"\n")
         for results in allResults:
             for result in results:
+                [inPath, concord, z] = result
+                concord = round(concord, 3)
                 words = []
-                for term in result: words.append(str(term))
+                for term in [inPath, concord, z]:  words.append(str(term))
                 out.write("\t".join(words)+"\n")
         out.close()
 
 def main():
-
     start = time.time()
     description = "Evaluate concordance on multiple GTC files,"+\
         " for multiple Z scores."
@@ -64,12 +69,11 @@ def main():
                         help='Total number of integer z scores to generate. Default = %(default)s')
     parser.add_argument('--outdir', metavar="DIR", default=".",
                         help="Directory for output; defaults to current working directory.  Threshold filename(s) will be of the form <prefix>_z<zscore>_thresholds.txt, for an input file of the form <prefix>.egt")
-    parser.add_argument('--outname', metavar="STRING",
+    parser.add_argument('--outname', metavar="STRING", required=True,
                         help='Output filename for concordance by zscore')
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
     args = vars(parser.parse_args())
-
     egt = args['egt']
     bpm = args['bpm']
     gtcList = args['gtc_list']
@@ -79,12 +83,10 @@ def main():
     zStart = args['zstart']
     zTotal = args['ztotal']
     verbose = args['verbose']
-
     multiEvaluator().findAndEvaluate(egt, bpm, gtcList, config, 
                                      zStart, zTotal, outDir, outName, verbose)
-
     duration = time.time() - start
-    print "Finished.  Elapsed time: "+str(round(duration,0))+" s\n"
+    if verbose: print "Finished.  Elapsed time: "+str(round(duration,0))+" s"
 
 if __name__ == "__main__":
     main()

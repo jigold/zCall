@@ -24,8 +24,8 @@ class evaluator(zCallBase):
         for i in range(1,4):
             for j in range(0,4):
                 count = counts[(i,j)]
-                total += 1
-                if i==j: match += 1
+                total += count
+                if i==j: match += count
         concord = float(match)/float(total)
         return concord
 
@@ -47,20 +47,19 @@ class evaluator(zCallBase):
             newCall = self.normalizeCall(self.call(gtc, i), nAA, nBB)
             counts[(origCall, newCall)] += 1
             included += 1
-        includeRate = float(included)/numSNPs
-        return (includeRate, included, counts)
+        return (included, numSNPs, counts)
 
     def evaluate(self, inPath, outPath, verbose=True):
         # input file lists multiple GTC input paths, one per line
-        self.writeConcordances(gtcListPath, outPath, verbose)
+        self.writeConcordances(inPath, outPath, verbose)
 
     def findConcordance(self, gtcPath):
         gtc = GTC(gtcPath, self.bpm.normID)
-        (includeRate, included, counts) = self.countCallTypes(gtc)
+        (includedSNPs, totalSNPs, counts) = self.countCallTypes(gtc)
         concord = self.concordanceRate(counts)
-        return (includeRate, included, concord)
+        return (includedSNPs, totalSNPs, concord)
 
-    def findMultipleConcordances(self, gtcListPath, verbose=True, digits=3):
+    def findMultipleConcordances(self, gtcListPath, verbose=True):
         gtcPaths = []
         for line in open(gtcListPath).readlines():
             # read input, ignoring comments and blank lines
@@ -68,13 +67,14 @@ class evaluator(zCallBase):
             line = line.strip()
             if line!='': gtcPaths.append(line)
         results = []
-        total = len(gtcPaths)
-        for i in range(total):
-            if verbose: print "Evaluating GTC path %s of %s" % (i+1, total)
-            (includeRate, included, concord) = self.findConcordance(gtcPaths[i])
-            results.append([gtcPaths[i], round(includeRate, digits), included,
-                            round(concord, digits)])
-        return results
+        gtcTotal = len(gtcPaths)
+        # snp inclusion is the same for all GTC files (depends only on EGT)
+        for i in range(gtcTotal):
+            if verbose: print "Evaluating GTC path %s of %s" % (i+1, gtcTotal)
+            (includedSNPs, totalSNPs, concord) = \
+                self.findConcordance(gtcPaths[i])
+            results.append([gtcPaths[i], concord])
+        return (includedSNPs, totalSNPs, results)
 
     def includeSNP(self, i, nAA, nBB, nAB):
         # should ith SNP be included in concordance calculation?
@@ -89,22 +89,27 @@ class evaluator(zCallBase):
             include = False
         return include        
 
-    def writeConcordances(self, gtcListPath, outPath, verbose=True):
+    def writeConcordances(self, gtcListPath, outPath, verbose=True, digits=3):
         # evaluate thresholds and write results for various GTC paths
-        results = self.findMultipleConcordances(gtcListPath, verbose)
+        (includedSNPs, totalSNPs, results) = \
+            self.findMultipleConcordances(gtcListPath, verbose)
+        includeRate = float(includedSNPs)/totalSNPs
         headers = [
             '# evaluateConcordance.py results',
             '# BPM '+self.bpmPath,
             '# EGT '+self.egtPath,
             '# THRESHOLDS '+self.threshPath,
-            '# [Input] [Filter pass rate] [Filter pass total] '+\
-                '[Concordance on original called SNPs]'
+            '# INCLUDED_SNP '+str(includedSNPs),
+            '# TOTAL_SNP '+str(totalSNPs),
+            '# INCLUDE_RATE_SNP '+str(round(includeRate, digits)),
+            '# [Input] [Concordance, excluding original uncalled SNPs]'
             ]
         out = open(outPath, 'w')
         for header in headers: 
             out.write(header+"\n")
         for result in results:
-            out.write("%s\t%s\t%s\t%s\n" % result)
+            [inPath, concord] = result
+            out.write("%s\t%s\n" % (inPath, round(concord, digits)))
         out.close()
         if verbose: print "Finished.\n"
 

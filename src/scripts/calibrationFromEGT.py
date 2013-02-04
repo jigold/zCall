@@ -47,10 +47,9 @@ class calibration:
         name = '.'.join(items)
         return 'thresholds_'+name+'_z'+str(zScore).zfill(2)+'.txt'
 
-    def run(self, egtPath, zScore=7, outDir='/tmp', verbose=True):
+    def run(self, egtPath, zScore=7, outDir='/tmp', verbose=True, force=False):
         outPath = os.path.join(outDir, self.thresholdFileName(egtPath, zScore))
-        if os.path.exists(outPath):
-            # TODO add --force option to force overwriting
+        if os.path.exists(outPath) and force==False:
             if verbose: print outPath+" already exists; omitting calibration."
             return outPath
         scriptDir = os.path.abspath(sys.path[0])
@@ -89,7 +88,7 @@ def main():
     z = args['zstart']
     cal = calibration(os.path.abspath(args['config']))
     for i in range(args['ztotal']):
-        cal.run(egt, z, out, args['verbose'])
+        cal.run(egt, z, out, args['verbose'], args['force'])
         z += 1
 
 def validate_args():
@@ -110,6 +109,8 @@ def validate_args():
                         help='Total number of integer z scores to generate. Default = %(default)s')
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
+    parser.add_argument('--force', action='store_true', default=False,
+                        help="Force overwrite of existing threshold files (if any)")
     args = vars(parser.parse_args())
     # validate arguments
     egt = args['egt']

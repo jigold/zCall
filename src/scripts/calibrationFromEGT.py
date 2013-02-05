@@ -25,8 +25,6 @@ Recommended default Z score = 7.  Suggested range of alternatives = 3 to 15.
 
 TODO
 Modify findMeanSD.py and findThresholds.py so they can be imported, instead of being run in a subshell
-Get EGT file, zscore, and output directory from command line options; also print help text
-Run with multiple z scores using start, increment, total?
 """
 
 

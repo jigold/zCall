@@ -37,14 +37,15 @@ class multiEvaluator:
         out.write("# EGT "+egt+"\n")
         out.write("# BPM "+bpm+"\n")
         out.write("# SNP_INCLUDE_RATE "+str(includeRate)+"\n")
-        headers = ['# Input', 'Concordance', 'Zscore']
+        headers = ['# Input', 'Concordance', 'Gain', 'Zscore']
         out.write("\t".join(headers)+"\n")
         for results in allResults:
             for result in results:
-                [inPath, concord, z] = result
+                [inPath, concord, gain, z] = result
                 concord = round(concord, 3)
+                gain = round(gain, 3)
                 words = []
-                for term in [inPath, concord, z]:  words.append(str(term))
+                for term in [inPath, concord, gain, z]:  words.append(str(term))
                 out.write("\t".join(words)+"\n")
         out.close()
 

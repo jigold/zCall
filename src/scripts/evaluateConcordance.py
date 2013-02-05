@@ -57,7 +57,8 @@ class evaluator(zCallBase):
         gtc = GTC(gtcPath, self.bpm.normID)
         (includedSNPs, totalSNPs, counts) = self.countCallTypes(gtc)
         concord = self.concordanceRate(counts)
-        return (includedSNPs, totalSNPs, concord)
+        gain = self.gainRate(counts)
+        return (includedSNPs, totalSNPs, concord, gain)
 
     def findMultipleConcordances(self, gtcListPath, verbose=True):
         gtcPaths = []
@@ -71,10 +72,20 @@ class evaluator(zCallBase):
         # snp inclusion is the same for all GTC files (depends only on EGT)
         for i in range(gtcTotal):
             if verbose: print "Evaluating GTC path %s of %s" % (i+1, gtcTotal)
-            (includedSNPs, totalSNPs, concord) = \
+            (includedSNPs, totalSNPs, concord, gain) = \
                 self.findConcordance(gtcPaths[i])
-            results.append([gtcPaths[i], concord])
+            results.append([gtcPaths[i], concord, gain])
         return (includedSNPs, totalSNPs, results)
+
+    def gainRate(self, counts):
+        # find rate of call gain: no calls in original which are called by zcall
+        [gain, total] = [0,0]
+        for i in range(4):
+            count = counts[(0,i)] # no call in original GTC
+            total += count
+            if i!=0: gain += count
+        gainRate = float(gain)/float(total)
+        return gainRate
 
     def includeSNP(self, i, nAA, nBB, nAB):
         # should ith SNP be included in concordance calculation?
@@ -102,14 +113,16 @@ class evaluator(zCallBase):
             '# INCLUDED_SNP '+str(includedSNPs),
             '# TOTAL_SNP '+str(totalSNPs),
             '# INCLUDE_RATE_SNP '+str(round(includeRate, digits)),
-            '# [Input] [Concordance, excluding original uncalled SNPs]'
+            '# [Input] [Concordance on original calls] [Gain]'
             ]
         out = open(outPath, 'w')
         for header in headers: 
             out.write(header+"\n")
         for result in results:
-            [inPath, concord] = result
-            out.write("%s\t%s\n" % (inPath, round(concord, digits)))
+            [inPath, concord, gain] = result
+            concord = round(concord, digits)
+            gain = round(gain, digits)
+            out.write("%s\t%s\n" % (inPath, concord, gain))
         out.close()
         if verbose: print "Finished.\n"
 

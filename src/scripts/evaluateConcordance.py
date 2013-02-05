@@ -1,8 +1,9 @@
 #! /usr/bin/env python
 
-# Iain Bancarz, ib5@sanger.ac.uk, January 2013
+"""Evaluate concordance and call gain for a list of GTC files.
 
-# Evaluate concordance for a list of GTC files
+Author:  Iain Bancarz, ib5@sanger.ac.uk, January 2013
+"""
 
 import os, re
 try: 
@@ -16,10 +17,12 @@ from EGT import *
 from zCallBase import zCallBase
 
 class evaluator(zCallBase):
+    """Class to evaluate multiple GTC files for given thresholds"""
 
     def concordanceRate(self, counts):
-        # find concordance rate between original and new call counts
-        # ignore SNPs where original was a "no call"
+        """Find concordance rate between original and new call counts
+
+        Ignores SNPs where original was a 'no call'"""
         [match, total] = [0,0]
         for i in range(1,4):
             for j in range(0,4):
@@ -30,9 +33,10 @@ class evaluator(zCallBase):
         return concord
 
     def countCallTypes(self, gtc):
-        # based on method in sampleConcordance.py
-        # call codes: 0 - "No Call", 1 - AA, 2 - AB, 3 - BB
-        # also return rate of inclusion for SNPs
+        """based on method in sampleConcordance.py
+
+        call codes: 0 - "No Call", 1 - AA, 2 - AB, 3 - BB
+        also return rate of inclusion for SNPs"""
         numSNPs = gtc.numSNPs
         included = 0
         counts = {}
@@ -50,7 +54,7 @@ class evaluator(zCallBase):
         return (included, numSNPs, counts)
 
     def evaluate(self, inPath, outPath, verbose=True):
-        # input file lists multiple GTC input paths, one per line
+        """inPath to file listing multiple GTC input paths, one per line"""
         self.writeConcordances(inPath, outPath, verbose)
 
     def findConcordance(self, gtcPath):
@@ -78,7 +82,9 @@ class evaluator(zCallBase):
         return (includedSNPs, totalSNPs, results)
 
     def gainRate(self, counts):
-        # find rate of call gain: no calls in original which are called by zcall
+        """Find rate of call gain
+
+        Defined as no calls in original which are called by zcall"""
         [gain, total] = [0,0]
         for i in range(4):
             count = counts[(0,i)] # no call in original GTC
@@ -88,10 +94,11 @@ class evaluator(zCallBase):
         return gainRate
 
     def includeSNP(self, i, nAA, nBB, nAB):
-        # should ith SNP be included in concordance calculation?
-        # require autosomal SNP with MAF>=5%
-        # want at least 10 points in each homozygote cluster
-        # also exclude SNPs without defined zcall thresholds
+        """Should ith SNP be included in concordance calculation?
+
+        Require autosomal SNP with MAF>=5%
+        Want at least 10 points in each homozygote cluster
+        Also exclude SNPs without defined zcall thresholds"""
         include = True
         chrom = self.bpm.chr[i]
         maf = self.findMAF(nAA, nBB, nAB)
@@ -101,7 +108,7 @@ class evaluator(zCallBase):
         return include        
 
     def writeConcordances(self, gtcListPath, outPath, verbose=True, digits=3):
-        # evaluate thresholds and write results for various GTC paths
+        """Find concordances/gains and write results to file"""
         (includedSNPs, totalSNPs, results) = \
             self.findMultipleConcordances(gtcListPath, verbose)
         includeRate = float(includedSNPs)/totalSNPs
@@ -127,7 +134,7 @@ class evaluator(zCallBase):
         if verbose: print "Finished.\n"
 
 def main():
-
+    """Method to run as script from command line.  Run with --help for usage."""
     description = "Evaluate concordance on multiple GTC files."
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('--thresholds', required=True, metavar="PATH", 

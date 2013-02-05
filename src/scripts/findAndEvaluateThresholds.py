@@ -1,9 +1,10 @@
 #! /usr/bin/env python
 
-# Iain Bancarz, ib5@sanger.ac.uk, January 2013
+"""Find thresholds for zcall and evaluate for a list of GTC files.
 
-# Find thresholds for zcall and evaluate concordance on a list of GTC files
-# Combines functionality of findThresholds.py and calibrationFromEGT.py
+Combines functionality of evaluateConcordance.py and calibrationFromEGT.py.
+Author: Iain Bancarz, ib5@sanger.ac.uk, January 2013
+"""
 
 import os, sys, time
 try: 
@@ -15,14 +16,17 @@ from evaluateConcordance import evaluator
 from calibrationFromEGT import calibration
 
 class multiEvaluator:
+    """Class to find and evaluate zcall thresholds."""
 
     def __init__(self, egt, bpm, configPath):
+        """Constructor arguments:  EGT path, BPM path, .ini path"""
         self.egt = os.path.abspath(egt)
         self.bpm = os.path.abspath(bpm)
         self.cal = calibration(configPath)
 
     def findAndEvaluate(self, gtcList, zStart, zTotal, outDir, outName, 
                         verbose=True, force=False):
+        """Main method to find and evaluate thresholds."""
         z = zStart
         allResults = []
         for i in range(zTotal):
@@ -40,9 +44,9 @@ class multiEvaluator:
                           bestZ, bestZType, allResults)
 
     def findBestZ(self, allResults, verbose=True):
-        # find 'best' zscore from multiple GTC files and thresholds
-        # defined as the smallest z s.t. mean concordance > mean gain
-        # if none exists, return z with minimum of (gain - concordance)
+        """Find 'best' zscore from multiple GTC files and thresholds.
+
+        The 'best' is defined as the smallest z s.t. mean concordance > mean gain (type 0); or if none exists, return z with minimum of mean gain - mean concordance (type 1)."""
         concords = {}
         gains = {}
         for results in allResults: # for each zscore
@@ -77,6 +81,7 @@ class multiEvaluator:
 
     def writeResults(self, outPath, includedSNPs, totalSNPs, 
                      bestZ, bestZType, allResults, digits=3):
+        """Write results to file.  Header includes summary stats."""
         includeRate = round(float(includedSNPs)/totalSNPs, digits)
         out = open(outPath, 'w')
         out.write("# EGT "+self.egt+"\n")
@@ -98,6 +103,7 @@ class multiEvaluator:
         
 
 def main():
+    """Method to run as script from command line.  Run with --help for usage."""
     start = time.time()
     description = "Evaluate concordance and gain on multiple GTC files,"+\
         " for multiple Z scores.  Concordance and gain are respectively"+\

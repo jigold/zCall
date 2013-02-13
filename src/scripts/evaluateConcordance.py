@@ -5,6 +5,9 @@
 Author:  Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
+# TODO exclude failing samples from concordance evaluation
+# either assess CR from GTC files, or use qc_results.json
+
 import os, re
 try: 
     import argparse     # optparse is deprecated, using argparse instead
@@ -37,12 +40,11 @@ class evaluator(zCallBase):
 
         call codes: 0 - "No Call", 1 - AA, 2 - AB, 3 - BB
         also return rate of inclusion for SNPs"""
-        numSNPs = gtc.numSNPs
         included = 0
         counts = {}
         for i in range(4):
             for j in range(4): counts[(i,j)] = 0
-        for i in range(numSNPs):
+        for i in range(gtc.numSNPs):
             nAA = self.egt.nAA[i]
             nBB = self.egt.nBB[i]
             nAB = self.egt.nAB[i]
@@ -51,20 +53,18 @@ class evaluator(zCallBase):
             newCall = self.normalizeCall(self.call(gtc, i), nAA, nBB)
             counts[(origCall, newCall)] += 1
             included += 1
-        return (included, numSNPs, counts)
+        return (included, gtc.numSNPs, counts)
 
     def evaluate(self, inPath, outPath, verbose=True):
         """inPath to file listing multiple GTC input paths, one per line"""
-        self.writeConcordances(inPath, outPath, verbose)
-
-    def findConcordance(self, gtcPath):
-        gtc = GTC(gtcPath, self.bpm.normID)
-        (includedSNPs, totalSNPs, counts) = self.countCallTypes(gtc)
-        concord = self.concordanceRate(counts)
-        gain = self.gainRate(counts)
-        return (includedSNPs, totalSNPs, concord, gain)
+        self.writeResults(inPath, outPath, verbose)
 
     def findMultipleConcordances(self, gtcListPath, verbose=True):
+        """Method to find concordance for multiple GTC files
+
+        Returns included SNP count, total SNPs, and "results" list
+        List contains GTC paths, concordance, and gain
+        """
         gtcPaths = []
         for line in open(gtcListPath).readlines():
             # read input, ignoring comments and blank lines
@@ -76,8 +76,10 @@ class evaluator(zCallBase):
         # snp inclusion is the same for all GTC files (depends only on EGT)
         for i in range(gtcTotal):
             if verbose: print "Evaluating GTC path %s of %s" % (i+1, gtcTotal)
-            (includedSNPs, totalSNPs, concord, gain) = \
-                self.findConcordance(gtcPaths[i])
+            gtc = GTC(gtcPaths[i], self.bpm.normID)
+            (includedSNPs, totalSNPs, counts) = self.countCallTypes(gtc)
+            concord = self.concordanceRate(counts)
+            gain = self.gainRate(counts)
             results.append([gtcPaths[i], concord, gain])
         return (includedSNPs, totalSNPs, results)
 
@@ -107,7 +109,7 @@ class evaluator(zCallBase):
             include = False
         return include        
 
-    def writeConcordances(self, gtcListPath, outPath, verbose=True, digits=3):
+    def writeResults(self, gtcListPath, outPath, verbose=True, digits=3):
         """Find concordances/gains and write results to file"""
         (includedSNPs, totalSNPs, results) = \
             self.findMultipleConcordances(gtcListPath, verbose)

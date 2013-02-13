@@ -74,7 +74,7 @@ The "src" directory is intended to contain the individual files making up zCall,
 
 The src codebase can be installed using the Makefile in the top-level directory.  Running "make install $DESTINATION" will install to the zCall subdirectory of $DESTINATION.
 
-As noted above, zCall was originally written by Jackie Goldstein (jigold@broadinstitute.org) et al.  The src directory is by Iain Bancarz (ibancarz@sanger.ac.uk).
+As noted above, zCall was originally written by Jackie Goldstein (jigold@broadinstitute.org) et al.  The src directory is by Iain Bancarz (ib5@sanger.ac.uk).
 
 
 ----------------------------------------------------------------------------

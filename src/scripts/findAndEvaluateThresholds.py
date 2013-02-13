@@ -7,100 +7,12 @@ Author: Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
 import os, sys, time
+from calibration import ZScoreEvaluator
 try: 
     import argparse     # optparse is deprecated, using argparse instead
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
-from evaluateConcordance import evaluator
-from calibrationFromEGT import calibration
-
-class multiEvaluator:
-    """Class to find and evaluate zcall thresholds."""
-
-    def __init__(self, egt, bpm, configPath):
-        """Constructor arguments:  EGT path, BPM path, .ini path"""
-        self.egt = os.path.abspath(egt)
-        self.bpm = os.path.abspath(bpm)
-        self.cal = calibration(configPath)
-
-    def findAndEvaluate(self, gtcList, zStart, zTotal, outDir, outName, 
-                        verbose=True, force=False):
-        """Main method to find and evaluate thresholds."""
-        z = zStart
-        allResults = []
-        for i in range(zTotal):
-            threshPath = self.cal.run(self.egt, z, outDir, verbose, force)
-            eva = evaluator(threshPath, self.bpm, self.egt)
-            (includedSNPs, totalSNPs, results) = \
-                eva.findMultipleConcordances(gtcList, verbose)
-            for result in results: result.append(z)
-            allResults.append(results)
-            z += 1
-        # includedSNPs, totalSNPs do not depend on GTC or z score
-        (bestZ, bestZType) = self.findBestZ(allResults, verbose)
-        outPath = os.path.join(outDir, outName)
-        self.writeResults(outPath, includedSNPs, totalSNPs, 
-                          bestZ, bestZType, allResults)
-
-    def findBestZ(self, allResults, verbose=True):
-        """Find 'best' zscore from multiple GTC files and thresholds.
-
-        The 'best' is defined as the smallest z s.t. mean concordance > mean gain (type 0); or if none exists, return z with minimum of mean gain - mean concordance (type 1)."""
-        concords = {}
-        gains = {}
-        for results in allResults: # for each zscore
-            for result in results: # for each gtc file
-                [inPath, concordance, gain, z] = result
-                try: concords[z].append(concordance)
-                except KeyError: concords[z] = [concordance,]
-                try: gains[z].append(gain)
-                except KeyError: gains[z] = [gain,]
-        concordanceGreaterThanGain = []
-        gainMinusConcord = {}
-        for z in concords.keys():
-            cMean = sum(concords[z])/len(concords[z])
-            gMean = sum(gains[z])/len(gains[z])
-            if cMean > gMean: concordanceGreaterThanGain.append(z)
-            gainMinusConcord[z] = gMean - cMean
-        bestType = None
-        if len(concordanceGreaterThanGain)>0: 
-            bestType = 0
-            best = min(concordanceGreaterThanGain)
-        else: 
-            bestType = 1
-            leastDiff = min(gainMinusConcord.values())
-            for z in gainMinusConcord.keys():
-                if gainMinusConcord[z]==leastDiff:
-                    best = z
-                    break
-        if verbose:
-            print "BEST_Z", best
-            print "BEST_Z_TYPE", bestType
-        return (best, bestType)
-
-    def writeResults(self, outPath, includedSNPs, totalSNPs, 
-                     bestZ, bestZType, allResults, digits=3):
-        """Write results to file.  Header includes summary stats."""
-        includeRate = round(float(includedSNPs)/totalSNPs, digits)
-        out = open(outPath, 'w')
-        out.write("# EGT "+self.egt+"\n")
-        out.write("# BPM "+self.bpm+"\n")
-        out.write("# SNP_INCLUDE_RATE "+str(includeRate)+"\n")
-        out.write("# BEST_Z "+str(bestZ)+"\n")
-        out.write("# BEST_Z_TYPE "+str(bestZType)+"\n")
-        headers = ['# Input', 'Concordance', 'Gain', 'Zscore']
-        out.write("\t".join(headers)+"\n")
-        for results in allResults:
-            for result in results:
-                [inPath, concord, gain, z] = result
-                concord = round(concord, digits)
-                gain = round(gain, digits)
-                words = []
-                for term in [inPath, concord, gain, z]: words.append(str(term))
-                out.write("\t".join(words)+"\n")
-        out.close()
-        
 
 def main():
     """Method to run as script from command line.  Run with --help for usage."""
@@ -146,9 +58,9 @@ def main():
     zTotal = args['ztotal']
     verbose = args['verbose']
     force = args['force']
-    multiEval = multiEvaluator(egt, bpm, config)
-    multiEval.findAndEvaluate(gtcList, zStart, zTotal, 
-                              outDir, outName, verbose, force)
+    eva = ZScoreEvaluator(egt, bpm, config)
+    eva.findAndEvaluate(gtcList, zStart, zTotal, 
+                        outDir, outName, verbose, force)
     duration = time.time() - start
     if verbose: print "Finished.  Elapsed time: "+str(round(duration,0))+" s"
 

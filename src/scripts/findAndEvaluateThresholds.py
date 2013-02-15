@@ -7,12 +7,12 @@ Author: Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
 import os, sys, time
-from calibration import ZScoreEvaluator
 try: 
     import argparse     # optparse is deprecated, using argparse instead
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
+from calibration import ZScoreEvaluator
 
 def main():
     """Method to run as script from command line.  Run with --help for usage."""
@@ -31,8 +31,8 @@ def main():
                         help="BPM .csv manifest file")
     parser.add_argument('--egt', required=True, metavar="PATH", 
                         help="EGT input file")
-    parser.add_argument('--gtc_list', required=True, metavar="PATH", 
-                        help="File listing GTC input paths")
+    parser.add_argument('--gtc_json', required=True, metavar="PATH", 
+                        help=".json file containing GTC input paths, as produced by sample_intensites.pl in WTSI genotyping pipeline")
     parser.add_argument('--config', metavar="PATH", default=configDefault,
                         help="Path to .ini config file. Default = <installation directory>/etc/config.ini")
     parser.add_argument('--zstart', metavar="INT", default=7, type=int,
@@ -50,7 +50,7 @@ def main():
     args = vars(parser.parse_args())
     egt = args['egt']
     bpm = args['bpm']
-    gtcList = args['gtc_list']
+    gtcJson = args['gtc_json']
     outDir = args['outdir']
     outName = args['outname']
     config = args['config']
@@ -59,7 +59,7 @@ def main():
     verbose = args['verbose']
     force = args['force']
     eva = ZScoreEvaluator(egt, bpm, config)
-    eva.findAndEvaluate(gtcList, zStart, zTotal, 
+    eva.findAndEvaluate(gtcJson, zStart, zTotal, 
                         outDir, outName, verbose, force)
     duration = time.time() - start
     if verbose: print "Finished.  Elapsed time: "+str(round(duration,0))+" s"

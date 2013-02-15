@@ -8,7 +8,7 @@ Import classes to front-end scripts for calibration and calling
 Author: Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
-import os, re, sys, tempfile, time
+import json, os, re, sys, tempfile, time
 from ConfigParser import ConfigParser
 from GTC import *
 from BPM import *
@@ -82,6 +82,8 @@ class ThresholdFinder:
 class ConcordanceGainFinder(zCallBase):
     """Class to evaluate multiple GTC files by concordance and gain metrics"""
 
+    # TODO instead of plain text list, use .json from sample_intensities.pl
+
     def concordanceRate(self, counts):
         """Find concordance rate between original and new call counts
 
@@ -119,18 +121,16 @@ class ConcordanceGainFinder(zCallBase):
         """alias for writeResults function"""
         self.writeResults(inPath, outPath, verbose)
 
-    def findMultipleConcordances(self, gtcListPath, verbose=True):
+    def findMultipleConcordances(self, inPath, verbose=True):
         """Method to find concordance for multiple GTC files
 
+        inPath = .json file created by sample_intensities.pl
         Returns included SNP count, total SNPs, and "results" list
         List contains GTC paths, concordance, and gain
         """
         gtcPaths = []
-        for line in open(gtcListPath).readlines():
-            # read input, ignoring comments and blank lines
-            if re.match('#', line): continue
-            line = line.strip()
-            if line!='': gtcPaths.append(line)
+        for sample in json.loads(open(inPath).read()):
+            gtcPaths.append(sample["result"])
         results = []
         gtcTotal = len(gtcPaths)
         # snp inclusion is the same for all GTC files (depends only on EGT)
@@ -204,7 +204,7 @@ class ZScoreEvaluator:
         self.bpm = os.path.abspath(bpm)
         self.tf = ThresholdFinder(configPath)
 
-    def findAndEvaluate(self, gtcList, zStart, zTotal, outDir, outName, 
+    def findAndEvaluate(self, gtcJson, zStart, zTotal, outDir, outName, 
                         verbose=True, force=False):
         """Main method to find and evaluate thresholds."""
         z = zStart
@@ -213,7 +213,7 @@ class ZScoreEvaluator:
             threshPath = self.tf.run(self.egt, z, outDir, verbose, force)
             cgf = ConcordanceGainFinder(threshPath, self.bpm, self.egt)
             (includedSNPs, totalSNPs, results) = \
-                cgf.findMultipleConcordances(gtcList, verbose)
+                cgf.findMultipleConcordances(gtcJson, verbose)
             for result in results: result.append(z)
             allResults.append(results)
             z += 1

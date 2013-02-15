@@ -26,8 +26,8 @@ def main():
                         help="BPM .csv manifest file")
     parser.add_argument('--egt', required=True, metavar="PATH", 
                         help="EGT input file")
-    parser.add_argument('--gtc_list', required=True, metavar="PATH", 
-                        help="File listing GTC input paths")
+    parser.add_argument('--gtc_json', required=True, metavar="PATH", 
+                        help=".json file containing GTC input paths")
     parser.add_argument('--out', required=True, metavar="PATH", 
                         help="Output file")
     parser.add_argument('--verbose', action='store_true', default=False,

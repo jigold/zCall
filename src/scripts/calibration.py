@@ -196,7 +196,7 @@ class ConcordanceGainFinder(zCallBase):
         if verbose: print "Finished.\n"
 
 class ZScoreEvaluator:
-    """Class to find thresholds and evaluate multiple z score values."""
+    """Find thresholds; evaluate for multiple z scores and GTC files."""
 
     def __init__(self, egt, bpm, configPath):
         """Constructor arguments:  EGT path, BPM path, .ini path"""

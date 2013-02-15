@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-"""Evaluate concordance and call gain for a list of GTC files.
+"""Evaluate concordance and gain for a list of GTC files.
 
 Author:  Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """

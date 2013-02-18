@@ -37,3 +37,7 @@ class BPM:
                 self.A.append(alleles[0]) # allele A
                 self.B.append(alleles[1]) # allele B
                 self.normID.append(int(fields[8])) # normalization ID for that snp
+        self.numSNPs = len(self.names)
+
+    def getTotalSNPs(self):
+        return self.numSNPs

@@ -23,7 +23,7 @@ class EGT:
         self.opa = self.getString()
         self.numCodes = self.getInt() # number of SNPs in file
         self.parseClusterPositions() # get mean and standard deviations of each cluster
-        self.getSNPnames() # get names of each snp
+        self.readSNPnames() # get names of each snp
         
     def readHeaderData(self):
         self.FileVersion = self.getInt()
@@ -35,7 +35,7 @@ class EGT:
         self.Mode = self.getByte()
         self.Manifest = self.getString()
 
-    def getSNPnames(self):
+    def readSNPnames(self):
         self.names = []
 
         buffer = self.f.read(13 * self.numCodes) # skip snp quality scores
@@ -46,7 +46,10 @@ class EGT:
         for i in range(self.numCodes): # parse snp names
             snp = self.getString()
             self.names.append(snp)
-        
+
+    def getTotalSNPs(self):
+        return self.numCodes
+
     def parseClusterPositions(self):
         '''
         Parse cluster positions for each site and transform from r,theta to x,y

@@ -161,6 +161,10 @@ class GTC:
             
         return genotypes
 
+
+    def getTotalSNPs(self):
+        return self.numSNPs
+
     def normalizeIntensities(self):
         '''
         Use Normalization transformations to convert raw intensities to normalized intensities

@@ -4,7 +4,14 @@
 
 Threshold finding combines: findMeanSD.py, findBetas.r, findThresholds.py
 Evaluation looks for optimal concordance and gain metrics on given dataset.
-Import classes to front-end scripts for calibration and calling
+Import classes to front-end scripts for calibration and calling.
+
+Contents:
+- ThresholdFinder
+- MetricEvaluator
+- MetricFinder
+- SampleEvaluator
+
 Author: Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
@@ -13,6 +20,7 @@ from ConfigParser import ConfigParser
 from GTC import *
 from BPM import *
 from EGT import *
+from thresholdContainer import ThresholdContainer
 from zCallBase import zCallBase
 
 class ThresholdFinder:
@@ -22,14 +30,13 @@ class ThresholdFinder:
     1. Run findMeanSD.py on given EGT file.  Outputs mean_sd.txt
     2. Run findBetas.r on output from (1). Outputs betas.txt
     3. Run findThresholds.py on EGT file and betas.txt, with given Z score(s).
-    Outputs from (1) and (2) are written to a temporary directory, deleted on exit.
+    Outputs from (1) and (2) are written to a temporary directory, deleted on successful exit.
 
     Recommended default Z score = 7.  Suggested range of alternatives = 3 to 15.
+"""
 
-    TODO
-    Modify findMeanSD.py and findThresholds.py so they can be imported, instead of being run in a subshell
-    """
-
+#    TODO  Modify findMeanSD.py and findThresholds.py so they can be imported, instead of being run in a subshell
+ 
     def __init__(self, configPath=None):
         if configPath==None:
             configPath = os.path.join(sys.path[0], '../etc/config.ini')
@@ -41,7 +48,7 @@ class ThresholdFinder:
     def thresholdFileName(self, egtPath, zScore):
         egtName = re.split('/', egtPath).pop()
         items = re.split('\.', egtName)
-        items.pop()
+        items.pop() # remove .egt suffix
         name = '.'.join(items)
         return 'thresholds_'+name+'_z'+str(zScore).zfill(2)+'.txt'
 
@@ -79,13 +86,98 @@ class ThresholdFinder:
         return outPath
 
 
-class ConcordanceGainFinder(zCallBase):
-    """Class to evaluate multiple GTC files by concordance and gain metrics"""
+class MetricEvaluator:
+    """Class to assess concordance/gain metrics and choose best z score"""
+    
+    def __init__(self):
+        self.outName = 'bestZScore.json'
+        self.metricsName = 'sampleScoreMetrics.json'
+        self.zKey = 'Z'
+        self.tKey = 'THRESHOLDS'
 
-    # TODO instead of plain text list, use .json from sample_intensities.pl
+    def findBestZ(self, inputs):
+        """Find best z score from mean concordance/gain values
+
+        The 'best' is defined as the smallest z s.t. mean concordance > mean gain; or if none exists, return z with minimum of gain - concordance"""
+        (concords, gains) = inputs
+        concordanceGreaterThanGain = []
+        gainMinusConcord = {}
+        for z in concords.keys():
+            concord = concords[z]
+            gain = gains[z]
+            if concord > gain: concordanceGreaterThanGain.append(z)
+            gainMinusConcord[z] = gain - concord
+        best = None
+        bestType = 0
+        if len(concordanceGreaterThanGain)>0:
+            best = min(concordanceGreaterThanGain)
+        else:
+            leastDiff = min(gainMinusConcord.values())
+            for z in gainMinusConcord.keys():
+                if gainMinusConcord[z] == leastDiff:
+                    best = z
+                    bestType = 1
+                    break
+        return best
+
+    def findMeans(self, inPaths, outPath=None):
+        """Read JSON result paths, find mean concordance/gain by z score
+
+        Optionally, write concatenation of results to given output path
+        """
+        rows = []
+        for inPath in inPaths:
+            rows.extend(json.loads(open(inPath).read()))
+        zCounts = {}
+        concords = {}
+        gains = {}
+        for row in rows:
+            [gtc, z, concord, gain, counts] = row
+            try: 
+                zCounts[z] += 1
+                concords[z] += concord
+                gains[z] += gain
+            except KeyError: 
+                zCounts[z] = 1
+                concords[z] = concord
+                gains[z] = gain
+        for z in zCounts.keys():
+            concords[z] = concords[z] / float(zCounts[z])
+            gains[z] = gains[z] / float(zCounts[z])
+        if outPath!=None:
+            out = open(outPath, 'w')
+            out.write(json.dumps(rows))
+            out.close()
+        return (concords, gains)
+
+    def writeBest(self, resultsPath, thresholdPath, outDir):
+        """Find best z score & thresholds.txt, write to file for later use
+
+        Arguments:
+        - JSON file listing SampleEvaluator output paths
+        - JSON file with hash of thresholds.txt paths by z score
+        - Output directory
+        """
+        inPaths = json.loads(open(resultsPath).read())
+        metricOutput = os.path.join(outDir, self.metricsName)
+        best = self.findBestZ(self.findMeans(inPaths, metricOutput))
+        thresholdPaths = json.loads(open(thresholdPath).read())
+        results = { self.zKey:best, self.tKey:thresholdPaths[best] }
+        outPath = os.path.join(outDir, self.outName)
+        out = open(outPath, 'w')
+        out.write(json.dumps(results))
+        out.close()
+        
+
+class MetricFinder(zCallBase):
+    """Class to evaluate GTC objects by concordance and gain metrics
+
+    Initialize with egt path, bpm path
+    Inherits common "calling" functions from zCallBase
+"""
 
     def concordanceRate(self, counts):
-        """Find concordance rate between original and new call counts
+        """Find concordance rate between original and new calls
 
         Ignores SNPs where original was a 'no call'"""
         [match, total] = [0,0]
@@ -97,51 +189,34 @@ class ConcordanceGainFinder(zCallBase):
         concord = float(match)/float(total)
         return concord
 
-    def countCallTypes(self, gtc):
-        """based on method in sampleConcordance.py
+    def countCallTypes(self, thresholds, gtc):
+        """Count call types (0, AA, AB, BB) for given GTC and thresholds.
 
         call codes: 0 - "No Call", 1 - AA, 2 - AB, 3 - BB
-        also return rate of inclusion for SNPs"""
-        included = 0
+        based on method in sampleConcordance.py
+        """
+        self.setThresholds(thresholds)
         counts = {}
         for i in range(4):
             for j in range(4): counts[(i,j)] = 0
-        for i in range(gtc.numSNPs):
+        includedSNPs = self.findIncludedSNPs(thresholds)
+        for i in includedSNPs:
             nAA = self.egt.nAA[i]
             nBB = self.egt.nBB[i]
             nAB = self.egt.nAB[i]
-            if not self.includeSNP(i, nAA, nBB, nAB): continue
             origCall = self.normalizeCall(gtc.genotypes[i], nAA, nBB)
             newCall = self.normalizeCall(self.call(gtc, i), nAA, nBB)
             counts[(origCall, newCall)] += 1
-            included += 1
-        return (included, gtc.numSNPs, counts)
+        return counts
 
-    def evaluate(self, inPath, outPath, verbose=True):
-        """alias for writeResults function"""
-        self.writeResults(inPath, outPath, verbose)
+    def getMetrics(self, thresholds, gtc):
+        """Find call types, concordance and gain for given threshold and GTC
 
-    def findMultipleConcordances(self, inPath, verbose=True):
-        """Method to find concordance for multiple GTC files
-
-        inPath = .json file created by sample_intensities.pl
-        Returns included SNP count, total SNPs, and "results" list
-        List contains GTC paths, concordance, and gain
-        """
-        gtcPaths = []
-        for sample in json.loads(open(inPath).read()):
-            gtcPaths.append(sample["result"])
-        results = []
-        gtcTotal = len(gtcPaths)
-        # snp inclusion is the same for all GTC files (depends only on EGT)
-        for i in range(gtcTotal):
-            if verbose: print "Evaluating GTC path %s of %s" % (i+1, gtcTotal)
-            gtc = GTC(gtcPaths[i], self.bpm.normID)
-            (includedSNPs, totalSNPs, counts) = self.countCallTypes(gtc)
-            concord = self.concordanceRate(counts)
-            gain = self.gainRate(counts)
-            results.append([gtcPaths[i], concord, gain])
-        return (includedSNPs, totalSNPs, results)
+        Arguments are ThresholdContainer and GTC objects"""
+        counts = self.countCallTypes(thresholds, gtc)
+        concord = self.concordanceRate(counts)
+        gain = self.gainRate(counts)
+        return (counts, concord, gain)
 
     def gainRate(self, counts):
         """Find rate of call gain
@@ -155,7 +230,7 @@ class ConcordanceGainFinder(zCallBase):
         gainRate = float(gain)/float(total)
         return gainRate
 
-    def includeSNP(self, i, nAA, nBB, nAB):
+    def includeSNP(self, i, nAA, nBB, nAB, thresholds):
         """Should ith SNP be included in concordance calculation?
 
         Require autosomal SNP with MAF>=5%
@@ -165,118 +240,69 @@ class ConcordanceGainFinder(zCallBase):
         chrom = self.bpm.chr[i]
         maf = self.findMAF(nAA, nBB, nAB)
         if maf < 0.05 or chrom == "X" or chrom == "Y" or nAA < 10 or nBB < 10 \
-                or self.thresholdsX[i]=="NA" or self.thresholdsY[i]=="NA":
+                or thresholds.getX(i)=="NA" or thresholds.getY(i)=="NA":
             include = False
         return include        
 
-    def writeResults(self, gtcListPath, outPath, verbose=True, digits=3):
-        """Find concordances/gains and write results to file"""
-        (includedSNPs, totalSNPs, results) = \
-            self.findMultipleConcordances(gtcListPath, verbose)
-        includeRate = float(includedSNPs)/totalSNPs
-        headers = [
-            '# evaluateConcordance.py results',
-            '# BPM '+self.bpmPath,
-            '# EGT '+self.egtPath,
-            '# THRESHOLDS '+self.threshPath,
-            '# INCLUDED_SNP '+str(includedSNPs),
-            '# TOTAL_SNP '+str(totalSNPs),
-            '# INCLUDE_RATE_SNP '+str(round(includeRate, digits)),
-            '# [Input] [Concordance on original calls] [Gain]'
-            ]
+    def findIncludedSNPs(self, thresholds):
+        """ Find set of included SNP indices """
+        included = []
+        for i in range(self.snpTotal):
+            nAA = self.egt.nAA[i]
+            nBB = self.egt.nBB[i]
+            nAB = self.egt.nAB[i]
+            if self.includeSNP(i, nAA, nBB, nAB, thresholds): 
+                included.append(i)
+        return included
+
+class SampleEvaluator:
+    """Evaluate z scores and thresholds for a single GTC file."""
+
+    def __init__(self, bpmPath, egtPath):
+        self.bpmPath = bpmPath
+        self.egtPath = egtPath
+        self.bpm = BPM(bpmPath)
+        self.metricFinder = MetricFinder(bpmPath, egtPath)
+
+    def convertCountKeys(self, counts):
+        """Convert keys in counts dictionary to string; required for JSON output
+
+        Counts are indexed by (original call, final call)
+        """
+        output = {}
+        for key in counts.keys():
+            (i,j) = key
+            output[str(i)+':'+str(j)] = counts[key]
+        return output
+
+    def run(self, thresholdPath, gtcPath, outPath, verbose=False):
+        """Evaluate z thresholds for given thresholds & sample GTC
+
+        Inputs:
+        - Path to .json file with hash of paths to threshold.txt files
+        - Path to GTC file
+        - Output path
+
+        Output:
+        - JSON file with GTC filename, z score, metrics, and call type counts
+        """
+        thresholdPaths = json.loads(open(thresholdPath).read())
+        gtc = GTC(gtcPath, self.bpm.normID)
+        gtcName = os.path.split(gtcPath)[1]
+        if verbose: print "Evaluating z scores for sample", gtcName
+        zList = thresholdPaths.keys()
+        zList.sort()
+        results = {}
+        for z in zList:
+            if verbose: print "Finding metrics for z score", z
+            thresholds = ThresholdContainer(thresholdPaths[z])
+            results[z] = self.metricFinder.getMetrics(thresholds, gtc)
+        output = []
+        for z in zList:
+            (counts, concord, gain) = results[z]           
+            converted = self.convertCountKeys(counts)
+            output.append([gtcName, z, concord, gain, converted])
         out = open(outPath, 'w')
-        for header in headers: 
-            out.write(header+"\n")
-        for result in results:
-            [inPath, concord, gain] = result
-            concord = round(concord, digits)
-            gain = round(gain, digits)
-            out.write("%s\t%s\n" % (inPath, concord, gain))
+        out.write(json.dumps(output))
         out.close()
-        if verbose: print "Finished.\n"
 
-class ZScoreEvaluator:
-    """Find thresholds; evaluate for multiple z scores and GTC files."""
-
-    def __init__(self, egt, bpm, configPath):
-        """Constructor arguments:  EGT path, BPM path, .ini path"""
-        self.egt = os.path.abspath(egt)
-        self.bpm = os.path.abspath(bpm)
-        self.tf = ThresholdFinder(configPath)
-
-    def findAndEvaluate(self, gtcJson, zStart, zTotal, outDir, outName, 
-                        verbose=True, force=False):
-        """Main method to find and evaluate thresholds."""
-        z = zStart
-        allResults = []
-        for i in range(zTotal):
-            threshPath = self.tf.run(self.egt, z, outDir, verbose, force)
-            cgf = ConcordanceGainFinder(threshPath, self.bpm, self.egt)
-            (includedSNPs, totalSNPs, results) = \
-                cgf.findMultipleConcordances(gtcJson, verbose)
-            for result in results: result.append(z)
-            allResults.append(results)
-            z += 1
-        # includedSNPs, totalSNPs do not depend on GTC or z score
-        (bestZ, bestZType) = self.findBestZ(allResults, verbose)
-        outPath = os.path.join(outDir, outName)
-        self.writeResults(outPath, includedSNPs, totalSNPs, 
-                          bestZ, bestZType, allResults)
-
-    def findBestZ(self, allResults, verbose=True):
-        """Find 'best' zscore from multiple GTC files and thresholds.
-
-        The 'best' is defined as the smallest z s.t. mean concordance > mean gain (type 0); or if none exists, return z with minimum of mean gain - mean concordance (type 1)."""
-        concords = {}
-        gains = {}
-        for results in allResults: # for each zscore
-            for result in results: # for each gtc file
-                [inPath, concordance, gain, z] = result
-                try: concords[z].append(concordance)
-                except KeyError: concords[z] = [concordance,]
-                try: gains[z].append(gain)
-                except KeyError: gains[z] = [gain,]
-        concordanceGreaterThanGain = []
-        gainMinusConcord = {}
-        for z in concords.keys():
-            cMean = sum(concords[z])/len(concords[z])
-            gMean = sum(gains[z])/len(gains[z])
-            if cMean > gMean: concordanceGreaterThanGain.append(z)
-            gainMinusConcord[z] = gMean - cMean
-        bestType = None
-        if len(concordanceGreaterThanGain)>0: 
-            bestType = 0
-            best = min(concordanceGreaterThanGain)
-        else: 
-            bestType = 1
-            leastDiff = min(gainMinusConcord.values())
-            for z in gainMinusConcord.keys():
-                if gainMinusConcord[z]==leastDiff:
-                    best = z
-                    break
-        if verbose:
-            print "BEST_Z", best
-            print "BEST_Z_TYPE", bestType
-        return (best, bestType)
-
-    def writeResults(self, outPath, includedSNPs, totalSNPs, 
-                     bestZ, bestZType, allResults, digits=3):
-        """Write results to file.  Header includes summary stats."""
-        includeRate = round(float(includedSNPs)/totalSNPs, digits)
-        out = open(outPath, 'w')
-        out.write("# EGT "+self.egt+"\n")
-        out.write("# BPM "+self.bpm+"\n")
-        out.write("# SNP_INCLUDE_RATE "+str(includeRate)+"\n")
-        out.write("# BEST_Z "+str(bestZ)+"\n")
-        out.write("# BEST_Z_TYPE "+str(bestZType)+"\n")
-        headers = ['# Input', 'Concordance', 'Gain', 'Zscore']
-        out.write("\t".join(headers)+"\n")
-        for results in allResults:
-            for result in results:
-                [inPath, concord, gain, z] = result
-                concord = round(concord, digits)
-                gain = round(gain, digits)
-                words = []
-                for term in [inPath, concord, gain, z]: words.append(str(term))
-                out.write("\t".join(words)+"\n")
-        out.close()

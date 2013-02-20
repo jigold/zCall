@@ -1,4 +1,4 @@
-! /usr/bin/env python
+#! /usr/bin/python
 
 """Object to read and contain zcall thresholds
 

@@ -11,23 +11,28 @@ class zCallBase:
 
     """ 'Base' class containing useful methods for zcall subclasses """
 
-    def __init__(self, threshPath, bpmPath, egtPath):
-        self.thresholds = ThresholdContainer(threshPath)
+    def __init__(self, bpmPath, egtPath, threshPath=None):
         self.bpm = BPM(bpmPath)
         self.egt = EGT(egtPath)
         self.snpTotal = self.egt.getTotalSNPs()
         if self.bpm.getTotalSNPs() != self.snpTotal:
             raise ValueError("ERROR: SNP totals in .egt and .bpm inputs differ")
+        if threshPath!=None:
+            self.thresholds = ThresholdContainer(threshPath)
+        else:
+            self.thresholds = None
 
     def call(self, gtc, i):
         """ re-call ith SNP in GTC file, using zcall thresholds
         
         call codes: 0 - "No Call", 1 - AA, 2 - AB, 3 - BB
         """
+        if self.thresholds==None:
+            raise ValueError("Must specify thresholds before calling!")
         normX = gtc.normXintensities[i]
         normY = gtc.normYintensities[i]
-        Tx = self.thresholds.getX[i]
-        Ty = self.thresholds.getY[i]
+        Tx = self.thresholds.getX(i)
+        Ty = self.thresholds.getY(i)
         call = None
         if normX < Tx and normY < Ty: ## Lower left quadrant
             call = 0
@@ -60,3 +65,7 @@ class zCallBase:
             elif call == 3:
                 call = 1
         return call
+
+    def setThresholds(self, thresholds):
+        """Set thresholds to given ThresholdContainer object"""
+        self.thresholds = thresholds

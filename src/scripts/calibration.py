@@ -20,8 +20,7 @@ from ConfigParser import ConfigParser
 from GTC import *
 from BPM import *
 from EGT import *
-from thresholdContainer import ThresholdContainer
-from zCallBase import zCallBase
+from utilities import CallingBase, ThresholdContainer
 
 class ThresholdFinder:
     """Class to write threshold.txt files for given EGT input and z score(s).
@@ -90,16 +89,15 @@ class MetricEvaluator:
     """Class to assess concordance/gain metrics and choose best z score"""
     
     def __init__(self):
-        self.outName = 'bestZScore.json'
         self.metricsName = 'sampleScoreMetrics.json'
-        self.zKey = 'Z'
-        self.tKey = 'THRESHOLDS'
+        self.zKey = 'BEST_Z'
+        self.tKey = 'BEST_THRESHOLDS'
+        self.mKey = 'SAMPLE_METRICS'
 
-    def findBestZ(self, inputs):
+    def findBestZ(self, concords, gains):
         """Find best z score from mean concordance/gain values
 
         The 'best' is defined as the smallest z s.t. mean concordance > mean gain; or if none exists, return z with minimum of gain - concordance"""
-        (concords, gains) = inputs
         concordanceGreaterThanGain = []
         gainMinusConcord = {}
         for z in concords.keys():
@@ -123,7 +121,7 @@ class MetricEvaluator:
     def findMeans(self, inPaths, outPath=None):
         """Read JSON result paths, find mean concordance/gain by z score
 
-        Optionally, write concatenation of results to given output path
+        Return concatenation of results and concordance/gain metrics
         """
         rows = []
         for inPath in inPaths:
@@ -148,9 +146,9 @@ class MetricEvaluator:
             out = open(outPath, 'w')
             out.write(json.dumps(rows))
             out.close()
-        return (concords, gains)
+        return (rows, concords, gains)
 
-    def writeBest(self, resultsPath, thresholdPath, outDir):
+    def writeBest(self, resultsPath, thresholdPath, outPath):
         """Find best z score & thresholds.txt, write to file for later use
 
         Arguments:
@@ -159,21 +157,21 @@ class MetricEvaluator:
         - Output directory
         """
         inPaths = json.loads(open(resultsPath).read())
-        metricOutput = os.path.join(outDir, self.metricsName)
-        best = self.findBestZ(self.findMeans(inPaths, metricOutput))
+        (metrics, concords, gains) = self.findMeans(inPaths)
+        best = self.findBestZ(concords, gains)
         thresholdPaths = json.loads(open(thresholdPath).read())
-        results = { self.zKey:best, self.tKey:thresholdPaths[best] }
-        outPath = os.path.join(outDir, self.outName)
+        results = { self.zKey:best, self.tKey:thresholdPaths[best],
+                    self.mKey:metrics}
         out = open(outPath, 'w')
         out.write(json.dumps(results))
         out.close()
         
 
-class MetricFinder(zCallBase):
+class MetricFinder(CallingBase):
     """Class to evaluate GTC objects by concordance and gain metrics
 
     Initialize with egt path, bpm path
-    Inherits common "calling" functions from zCallBase
+    Inherits common "calling" functions from CallingBase
 """
 
     def concordanceRate(self, counts):

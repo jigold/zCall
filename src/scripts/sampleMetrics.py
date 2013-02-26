@@ -1,11 +1,11 @@
 #! /usr/bin/env python
 
-"""Evaluate concordance and gain for a single GTC file and Z score.
+"""Evaluate concordance and gain for given GTC files and Z scores.
 
 Author:  Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
-import json, os, re
+import os
 from calibration import SampleEvaluator
 try: 
     import argparse     # optparse is deprecated, using argparse instead
@@ -15,7 +15,7 @@ except ImportError:
 
 def main():
     """Method to run as script from command line.  Run with --help for usage."""
-    description = "Evaluate concordance/gain for given zCall thresholds on a single GTC file."
+    description = "Evaluate concordance/gain for given z scores and GTC files."
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('--thresholds', required=True, metavar="PATH", 
                         help="Path to .json file containing threshold .txt paths indexed by z score")
@@ -24,7 +24,7 @@ def main():
     parser.add_argument('--egt', required=True, metavar="PATH", 
                         help="EGT input file")
     parser.add_argument('--gtc', required=True, metavar="PATH", 
-                        help="Path to .gtc input file")
+                        help="Path to .json file containing .gtc input paths")
     parser.add_argument('--out', required=True, metavar="PATH", 
                         help="Path for .json output")
     parser.add_argument('--verbose', action='store_true', default=False,

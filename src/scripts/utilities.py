@@ -2,12 +2,27 @@
 
 # Iain Bancarz, ib5@sanger.ac.uk, January 2013
 
+import json
 from GTC import *
 from BPM import *
 from EGT import *
 
-class CallingBase:
+class SharedBase:
+    """Constants and simple functions shared across multiple classes"""
 
+    Z_KEY = 'BEST_Z'
+    T_KEY = 'BEST_THRESHOLDS'
+    M_KEY = 'SAMPLE_METRICS'
+
+    def readSampleJson(self, inPath):
+        """Read sample GTC paths from .json file used by genotyping pipeline"""
+        samples = json.loads(open(inPath).read())
+        gtc = []
+        for sample in samples: gtc.append(sample['result'])
+        return gtc
+        
+
+class CallingBase(SharedBase):
     """ 'Base' class containing useful methods for zcall subclasses """
 
     def __init__(self, bpmPath, egtPath, threshPath=None):

@@ -22,9 +22,6 @@ Calibration procedure:
 Outputs from (1) and (2) are written to a temporary directory, deleted on exit.
 
 Recommended default Z score = 7.  Suggested range of alternatives = 3 to 15.
-
-TODO
-Modify findMeanSD.py and findThresholds.py so they can be imported, instead of being run in a subshell
 """
 
 def main():

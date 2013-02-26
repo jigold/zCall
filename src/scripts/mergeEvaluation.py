@@ -20,7 +20,7 @@ def main():
     description = "Evaluate concordance/gain results for multiple thresholds and samples; find the 'best' z score for subsequent use of zCall."
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('--metrics', required=True, metavar="PATH", 
-                        help="Path to .json file containing paths to .json metrics files")
+                        help="Path to text file containing paths to .json metrics files")
     parser.add_argument('--thresholds', required=True, metavar="PATH", 
                         help="Path to .json file containing threshold .txt paths indexed by z score")
     parser.add_argument('--out', required=False, metavar="PATH", 

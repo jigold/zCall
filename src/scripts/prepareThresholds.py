@@ -1,15 +1,16 @@
 #! /usr/bin/env python
 
-# Find thresholds for given .egt file and Z score(s)
-# Convenience script to combine findMeanSD.py, findBetas.r, findThresholds.py
+""" Find thresholds for given .egt file and Z score(s)
+Combines findMeanSD.py, findBetas.r, findThresholds.py from original zCall
 
-# Iain Bancarz, ib5@sanger.ac.uk
-# January 2013
+Iain Bancarz, ib5@sanger.ac.uk
+January 2013
+"""
 
 import os, sys
-from calibration import ThresholdFinder
 try: 
-    import argparse     # optparse is deprecated, using argparse instead
+    import argparse, json
+    from calibration import ThresholdFinder
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -29,12 +30,18 @@ def main():
     args = validate_args()
     egt = os.path.abspath(args['egt'])
     out = os.path.abspath(args['out'])
+    indexPath = os.path.join(out, args['index_name'])
     z = args['zstart']
     tf = ThresholdFinder(os.path.abspath(args['config']))
+    thresholdPaths = {}
     for i in range(args['ztotal']):
-        tf.run(egt, z, out, args['verbose'], args['force'])
+        thresholdPath = tf.run(egt, z, out, args['verbose'], args['force'])
+        thresholdPaths[str(z)] = thresholdPath # .json requires string as key
         z += 1
-
+    index = open(indexPath, 'w')
+    index.write(json.dumps(thresholdPaths))
+    index.close()
+    
 def validate_args():
     # parse command-line arguments and return dictionary of params
     description = "Generates threshold files for use with the zCall genotype caller.  Inputs are an .egt file and one or more Z score values.  The .egt file is a proprietary Illumina binary file format, containing typical means and standard deviations for intensity clusters.  An .egt file is supplied by Illumina for its own genotyping chips, or it may be generated using the GenomeStudio software for custom probe sets."
@@ -51,6 +58,9 @@ def validate_args():
                     help='Starting z score. Default = %(default)s')
     parser.add_argument('--ztotal', metavar="INT", default=1, type=int,
                         help='Total number of integer z scores to generate. Default = %(default)s')
+    parser.add_argument('--index_name', metavar="STRING", 
+                        default="threshold_index.json",
+                        help='Name for .json index file with paths to thresholds.txt output, written to output directory')
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
     parser.add_argument('--force', action='store_true', default=False,

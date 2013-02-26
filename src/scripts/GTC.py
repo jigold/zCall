@@ -13,9 +13,10 @@ import math
 class GTC:
     ''' Class for parsing GTC file'''
 
-    def __init__(self, filename, bpmNormIDs):
+    def __init__(self, inputPath, bpmNormIDs):
         ''' Init function for class. Input is a .gtc file '''
-        self.f = open(filename, 'rb') # open file handler for binary file
+        self.inputPath = inputPath
+        self.f = open(self.inputPath, 'rb') # open file handler for binary file
         self.BPMnormIDs = bpmNormIDs # list with norm ID for each snp
         
         self.TOC = self.parseTOC() # parse table of contents to get location of other information
@@ -35,7 +36,11 @@ class GTC:
 
         self.normXintensities, self.normYintensities = self.normalizeIntensities()
 
-            
+
+    def getInputPath(self):
+        """Return original input path"""
+        return self.inputPath
+          
     def parseTOC(self):
         '''Parse Table of Contents of GTC file
         No input

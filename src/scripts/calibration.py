@@ -20,7 +20,7 @@ from ConfigParser import ConfigParser
 from GTC import *
 from BPM import *
 from EGT import *
-from utilities import CallingBase, ThresholdContainer
+from utilities import CallingBase, ThresholdContainer, SharedBase
 
 class ThresholdFinder:
     """Class to write threshold.txt files for given EGT input and z score(s).
@@ -85,14 +85,11 @@ class ThresholdFinder:
         return outPath
 
 
-class MetricEvaluator:
+class MetricEvaluator(SharedBase):
     """Class to assess concordance/gain metrics and choose best z score"""
     
     def __init__(self):
-        self.metricsName = 'sampleScoreMetrics.json'
-        self.zKey = 'BEST_Z'
-        self.tKey = 'BEST_THRESHOLDS'
-        self.mKey = 'SAMPLE_METRICS'
+        pass
 
     def findBestZ(self, concords, gains):
         """Find best z score from mean concordance/gain values
@@ -152,16 +149,20 @@ class MetricEvaluator:
         """Find best z score & thresholds.txt, write to file for later use
 
         Arguments:
-        - JSON file listing SampleEvaluator output paths
+        - Text file listing SampleEvaluator output paths, one per line
         - JSON file with hash of thresholds.txt paths by z score
         - Output directory
         """
-        inPaths = json.loads(open(resultsPath).read())
+        inPaths = []
+        lines = open(resultsPath).readlines()
+        for line in lines:
+            line = line.strip()
+            if line!='': inPaths.append(line)
         (metrics, concords, gains) = self.findMeans(inPaths)
         best = self.findBestZ(concords, gains)
         thresholdPaths = json.loads(open(thresholdPath).read())
-        results = { self.zKey:best, self.tKey:thresholdPaths[best],
-                    self.mKey:metrics}
+        results = { self.Z_KEY:best, self.T_KEY:thresholdPaths[best],
+                    self.M_KEY:metrics}
         out = open(outPath, 'w')
         out.write(json.dumps(results))
         out.close()
@@ -253,8 +254,8 @@ class MetricFinder(CallingBase):
                 included.append(i)
         return included
 
-class SampleEvaluator:
-    """Evaluate z scores and thresholds for a single GTC file."""
+class SampleEvaluator(SharedBase):
+    """Evaluate z scores and thresholds for one or more GTC files."""
 
     def __init__(self, bpmPath, egtPath):
         self.bpmPath = bpmPath
@@ -273,34 +274,54 @@ class SampleEvaluator:
             output[str(i)+':'+str(j)] = counts[key]
         return output
 
-    def run(self, thresholdPath, gtcPath, outPath, verbose=False):
+    def evaluate(self, thresholds, gtc, verbose=False):
         """Evaluate z thresholds for given thresholds & sample GTC
 
         Inputs:
-        - Path to .json file with hash of paths to threshold.txt files
-        - Path to GTC file
-        - Output path
-
-        Output:
-        - JSON file with GTC filename, z score, metrics, and call type counts
+        - dictionary of threshold paths indexed by z score
+        - GTC object
         """
-        thresholdPaths = json.loads(open(thresholdPath).read())
-        gtc = GTC(gtcPath, self.bpm.normID)
-        gtcName = os.path.split(gtcPath)[1]
+        gtcName = os.path.split(gtc.getInputPath())[1]
         if verbose: print "Evaluating z scores for sample", gtcName
-        zList = thresholdPaths.keys()
+        zList = thresholds.keys()
         zList.sort()
         results = {}
         for z in zList:
             if verbose: print "Finding metrics for z score", z
-            thresholds = ThresholdContainer(thresholdPaths[z])
-            results[z] = self.metricFinder.getMetrics(thresholds, gtc)
+            results[z] = self.metricFinder.getMetrics(thresholds[z], gtc)
         output = []
         for z in zList:
             (counts, concord, gain) = results[z]           
             converted = self.convertCountKeys(counts)
             output.append([gtcName, z, concord, gain, converted])
+            #output.append([gtcName, z, concord, gain, counts])
+        return output
+
+    def run(self, thresholdPath, sampleJson, outPath, verbose=False):
+        """Evaluate thresholds for given list of sample GTC paths
+
+        Inputs:
+        - Path to .json file with hash of paths to threshold.txt files
+        - Path to .json file with paths of sample GTC files
+        - Output path
+
+        Output:
+        - JSON file with GTC filename, z score, metrics, and call type counts
+
+        GTC input is in sample JSON format used by genotyping pipeline """
+        metrics = []
+        if verbose: print "Reading thresholds."
+        thresholdPaths = json.loads(open(thresholdPath).read())
+        thresholds = {}
+        for z in thresholdPaths.keys(): 
+            thresholds[z] = ThresholdContainer(thresholdPaths[z])
+        if verbose: print "Evaluating samples."
+        output = []
+        gtcPaths = self.readSampleJson(sampleJson)
+        for gtcPath in gtcPaths:
+            gtc = GTC(gtcPath, self.bpm.normID)
+            output.extend(self.evaluate(thresholds, gtc, verbose))
+        # write results
         out = open(outPath, 'w')
         out.write(json.dumps(output))
         out.close()
-

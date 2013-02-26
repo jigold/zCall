@@ -12,34 +12,6 @@ class SampleCaller(CallingBase):
     Write output in .bed format; use merge_bed in genotyping pipeline workflows
     """
 
-    def callsToStrings(self, calls, useManifest=True, sep=" "):
-        """ Translate numeric call codes to genotype strings
-
-        Either use genotypes from manifest (default), or A/B
-        String consists of two genotype characters and given separator
-        Eg. 1 -> 'A A' 
-
-        NB: Not needed for .bed output!"""
-        if len(calls) != self.snpTotal:
-            raise ValueError("Number of calls does not match SNP total!")
-        translated = []
-        alleleN = '0'
-        for i in range(self.snpTotal):
-            chars = []
-            if useManifest:
-                alleleA = self.bpm.A[i]
-                alleleB = self.bpm.B[i]
-            else:
-                alleleA = 'A'
-                alleleB = 'B'
-            translations = [alleleN + sep + alleleN, # 0
-                            alleleA + sep + alleleA, # 1
-                            alleleA + sep + alleleB, # 2
-                            alleleB + sep + alleleB, # 3
-                            ]
-            translated.append(translations[calls[i]]))
-        return translated
-
     def callsToBinary(self, calls, outPath):
         """Translate genotype calls for one or more samples to Plink binary
 

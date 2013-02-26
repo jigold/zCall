@@ -1,8 +1,15 @@
 #! /usr/bin/env python
 
-import struct
+import os, struct
 from GTC import *
-from utilities import CallingBase, ThresholdContainer
+try: 
+    import argparse, json
+    from calibration import ThresholdFinder
+    from utilities import CallingBase, ThresholdContainer
+except ImportError: 
+    sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
+    sys.exit(1)
+
 
 class SampleCaller(CallingBase):
 
@@ -12,7 +19,7 @@ class SampleCaller(CallingBase):
     Write output in .bed format; use merge_bed in genotyping pipeline workflows
     """
 
-    def callsToBinary(self, calls, outPath):
+    def callsToBinary(self, calls):
         """Translate genotype calls for one or more samples to Plink binary
 
         4 genotype calls are packed into one byte of output
@@ -26,7 +33,8 @@ class SampleCaller(CallingBase):
         output = []
         i = 0
         while i < callTotal:
-            byte = struct.pack(self.callsToByte(calls[i:i+4]))
+            byte = struct.pack('B', self.callsToByte(calls[i:i+4]))
+            #print calls[i:i+4], byte
             output.append(byte)
             i += 4
         return output
@@ -34,7 +42,9 @@ class SampleCaller(CallingBase):
     def callsToByte(self, calls):
         """Convert list of 4 calls to an integer in Plink binary format 
 
-        Create byte string of the form '01001101', convert to integer"""
+        Create byte string of the form '01001101', convert to integer
+        See http://pngu.mgh.harvard.edu/~purcell/plink/binary.shtml
+        """
         if len(calls) != 4:
             raise ValueError("Must have exactly 4 calls for byte conversion!")
         byte = []
@@ -65,11 +75,12 @@ class SampleCaller(CallingBase):
                 calls.append(origCall)
         return calls
 
-    def run(self, sampleJsonPath, outPath):
+    def run(self, sampleJsonPath, outPath, verbose=False):
         """Apply zCall to GTC files and write Plink .bed output"""
         gtcPaths = self.readSampleJson(sampleJsonPath)
         calls = []
         for gtcPath in gtcPaths:
+            if verbose: print "Calling GTC file", gtcPath
             gtc = GTC(gtcPath, self.bpm.normID)
             calls.extend(self.makeCalls(gtc))
         self.writeBed(calls, outPath)
@@ -84,8 +95,43 @@ class SampleCaller(CallingBase):
         """
         header = [0b01101100, 0b00011011, 0b00000000]
         output = []
-        for byte in header: output.append(struct.pack('B', byte)
+        for byte in header: output.append(struct.pack('B', byte))
         output.extend(self.callsToBinary(calls))
         out = open(outPath, 'w')
         for byte in output: out.write(byte)
         out.close()
+
+
+def main():
+    """Method to run as script from command line"""
+    description = "Apply zCall to no-calls with given threshold and samples."
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('--thresholds', required=True, metavar="PATH", 
+                        help="Path to zCall thresholds.txt file")
+    parser.add_argument('--bpm', required=True, metavar="PATH", 
+                        help="BPM .csv manifest file")
+    parser.add_argument('--egt', required=True, metavar="PATH", 
+                        help="EGT input file")    
+    parser.add_argument('--gtc', required=True, metavar="PATH", 
+                        help="Path to .json file containing .gtc input paths")
+    parser.add_argument('--out', required=True, metavar="PATH", 
+                        help="Path for Plink .bed binary output")
+    parser.add_argument('--verbose', action='store_true', default=False,
+                        help="Print status information to standard output")
+    args = vars(parser.parse_args())
+    inputKeys = ['thresholds', 'bpm', 'egt', 'gtc']
+    for key in inputKeys:
+        if not os.access(args[key], os.R_OK):
+            raise OSError("Cannot read input path \""+args[key]+"\"")
+        else:
+            args[key] = os.path.abspath(args[key])
+    (dirName, fileName) = os.path.split(os.path.abspath(args['out']))
+    if fileName=='' or not os.access(dirName, os.R_OK):
+        raise OSError("Invalid output path \""+args['out']+"\"")
+    else:
+        args['out'] = os.path.abspath(args['out'])
+    caller = SampleCaller(args['bpm'], args['egt'], args['thresholds'])
+    caller.run(args['gtc'], args['out'])
+
+if __name__ == "__main__":
+    main()

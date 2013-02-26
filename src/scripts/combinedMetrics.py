@@ -7,10 +7,10 @@ Use to find 'best' z score for calling.
 Author:  Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
-import json, os, re
-from calibration import MetricEvaluator
+import os, sys
 try: 
     import argparse    
+    from calibration import MetricEvaluator
 except ImportError: 
     sys.stderr.write("ERROR: Requires Python 2.7 to run; exiting.\n")
     sys.exit(1)
@@ -24,7 +24,7 @@ def main():
     parser.add_argument('--thresholds', required=True, metavar="PATH", 
                         help="Path to .json file containing threshold .txt paths indexed by z score")
     parser.add_argument('--out', required=False, metavar="PATH", 
-                        help="Directory for .json output", default=".")
+                        help="Path for .json output", default=".")
     args = vars(parser.parse_args())
     
     MetricEvaluator().writeBest(args['metrics'], args['thresholds'], 

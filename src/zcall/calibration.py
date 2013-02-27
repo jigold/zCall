@@ -15,7 +15,7 @@ Contents:
 Author: Iain Bancarz, ib5@sanger.ac.uk, January 2013
 """
 
-import json, os, re, sys, tempfile, time
+import json, os, re, sys, tempfile
 from ConfigParser import ConfigParser
 from GTC import *
 from BPM import *
@@ -26,15 +26,15 @@ class ThresholdFinder:
     """Class to write threshold.txt files for given EGT input and z score(s).
 
     Threshold finding procedure:
-    1. Run findMeanSD.py on given EGT file.  Outputs mean_sd.txt
+    1. Run findMeanSD on given EGT file.  Outputs mean_sd.txt
     2. Run findBetas.r on output from (1). Outputs betas.txt
-    3. Run findThresholds.py on EGT file and betas.txt, with given Z score(s).
+    3. Run findThresholds on EGT file and betas.txt, with given Z score(s).
     Outputs from (1) and (2) are written to a temporary directory, deleted on successful exit.
 
     Recommended default Z score = 7.  Suggested range of alternatives = 3 to 15.
 """
 
-#    TODO  Modify findMeanSD.py and findThresholds.py so they can be imported, instead of being run in a subshell
+#    TODO  Modify findMeanSD and findThresholds so they can be imported, instead of being run in a subshell
  
     def __init__(self, configPath=None):
         if configPath==None:
@@ -64,10 +64,10 @@ class ThresholdFinder:
             print msg
         meanSd = tempDir+'/mean_sd.txt'
         betas = tempDir+'/betas.txt'
-        cmdList = [scriptDir+'/findMeanSD.py -E '+egtPath+' > '+meanSd,
+        cmdList = [scriptDir+'/findMeanSD -E '+egtPath+' > '+meanSd,
                    'bash -c "'+self.rScript+' '+scriptDir+'/findBetas.r '+\
                        meanSd+' '+betas+' 1 " &> '+tempDir+'/rscript.log',
-                   scriptDir+'/findThresholds.py -B '+betas+' -E '+egtPath+\
+                   scriptDir+'/findThresholds -B '+betas+' -E '+egtPath+\
                        ' -Z '+str(zScore)+' > '+outPath,
                    ] # findBetas.r command uses bash to redirect stderr
         commandsOK = True

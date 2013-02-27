@@ -1,3 +1,4 @@
 # patterns for git version control to ignore
 *~
 *.pyc
+*.html

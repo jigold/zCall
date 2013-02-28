@@ -1,0 +1,2 @@
+# do not diff the .csv manifest (treat as binary data)
+*.bpm.csv -crlf -diff

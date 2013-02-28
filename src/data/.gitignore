@@ -1,0 +1,2 @@
+# ignore .txt output from tests
+*.txt

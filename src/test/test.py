@@ -111,7 +111,7 @@ class TestScripts(unittest.TestCase):
         resultsNew = json.loads(open(outPath).read())
         oldPath = os.path.join(self.dataDir, 'zEvaluation.json')
         resultsOld = json.loads(open(oldPath).read())
-        self.assertEqual(resultsOld, resultsNew)
+        self.assertEqual(resultsOld['BEST_Z'], resultsNew['BEST_Z'])
 
     def test_call(self):
         """Re-call GTC files using zCall"""

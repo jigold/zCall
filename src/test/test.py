@@ -80,9 +80,7 @@ class TestScripts(unittest.TestCase):
         if os.path.exists(self.thresholdJson):
             self.validateThresholds(self.thresholdJson)
         else:
-            msg = "WARNING: Must generate zcall thresholds with .json index: "+\
-                self.thresholdJson+"\nSee output from test_prepareThresholds."
-            sys.stderr.write(msg)
+            sys.stderr.write("WARNING: Missing thresholds, see test/README.")
 
     def test_prepareThresholds(self):
         """Prepare thresholds.txt files

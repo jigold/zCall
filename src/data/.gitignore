@@ -1,2 +1,5 @@
-# ignore .txt output from tests
-*.txt
+# ignore output from tests
+thresholds_*.txt
+*.egt
+*.bpm.csv
+thresholds.json

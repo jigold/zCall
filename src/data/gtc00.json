@@ -1,14 +1,14 @@
 [
     {
-        "result": "/lustre/scratch109/sanger/ib5/gtc/7197037167_R01C01.gtc"
+        "result": "/nfs/gapi/data/genotype/zcall_test/7197037167_R01C01.gtc"
     },
     {
-        "result": "/lustre/scratch109/sanger/ib5/gtc/7197037167_R01C02.gtc"
+        "result": "/nfs/gapi/data/genotype/zcall_test/7197037167_R01C02.gtc"
     },
     {
-        "result": "/lustre/scratch109/sanger/ib5/gtc/7197037167_R02C01.gtc"
+        "result": "/nfs/gapi/data/genotype/zcall_test/7197037167_R02C01.gtc"
     },
     {
-        "result": "/lustre/scratch109/sanger/ib5/gtc/7197037167_R02C02.gtc"
+        "result": "/nfs/gapi/data/genotype/zcall_test/7197037167_R02C02.gtc"
     }
 ]

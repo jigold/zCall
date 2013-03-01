@@ -15,6 +15,7 @@ parser.add_option("-B","--betas",type="string",dest="betas",action="store",help=
 parser.add_option("-E","--egt",type="string",dest="egt",action="store",help=".EGT file path")
 parser.add_option("-I","--minint",type="string",dest="minIntensity",action="store",help="minimum mean int signal for comm hom cluster")
 parser.add_option("-Z","--z",type="string",dest="z",action="store",help="z-score threshold")
+parser.add_option("-D", "--digits", type="int", dest="digits", action="store", help="Digits to round output thresholds (default = no rounding)",  default=-1)
 (options, args) = parser.parse_args()
 
 if options.egt == None:
@@ -115,6 +116,9 @@ for i in range(numSNPs):
             
 
     # Write thresholds to std out
+    if options.digits!=-1:
+        if Tx!="NA": Tx = round(Tx, options.digits)
+        if Ty!="NA": Ty = round(Ty, options.digits)
     out = [snp, Tx, Ty]
     out = [str(o) for o in out]
         

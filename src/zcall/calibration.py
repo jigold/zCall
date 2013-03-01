@@ -43,6 +43,7 @@ class ThresholdFinder:
         config = ConfigParser()
         config.readfp(open(configPath))
         self.rScript = config.get('zcall', 'rscript')
+        self.digits = int(config.get('zcall', 'digits'))
 
     def thresholdFileName(self, egtPath, zScore):
         egtName = re.split('/', egtPath).pop()
@@ -68,7 +69,8 @@ class ThresholdFinder:
                    'bash -c "'+self.rScript+' '+scriptDir+'/findBetas.r '+\
                        meanSd+' '+betas+' 1 " &> '+tempDir+'/rscript.log',
                    scriptDir+'/findThresholds -B '+betas+' -E '+egtPath+\
-                       ' -Z '+str(zScore)+' > '+outPath,
+                       ' -Z '+str(zScore)+' -D '+str(self.digits)+\
+                       ' > '+outPath,
                    ] # findBetas.r command uses bash to redirect stderr
         commandsOK = True
         for cmd in cmdList:

@@ -72,6 +72,7 @@ class TestScripts(unittest.TestCase):
         self.bpmPath = os.path.join(self.bigData, 'HumanExome-12v1_A.bpm.csv')
         self.egtPath = os.path.join(self.bigData, 'HumanExome-12v1.egt')
         self.gtcPaths = []
+        # TODO generate json using self.bigData, instead of using hard-coded
         for name in ('gtc00.json', 'gtc01.json'): 
             self.gtcPaths.append(os.path.join(self.dataDir, name))
         self.thresholdJsonName = 'thresholds.json'

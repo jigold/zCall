@@ -3,3 +3,4 @@ thresholds_*.txt
 *.egt
 *.bpm.csv
 thresholds.json
+tmp*

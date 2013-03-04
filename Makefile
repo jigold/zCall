@@ -13,7 +13,7 @@ install: $(PREFIX)
 	@echo -e "Installing scripts..."
 	install -d $(DEST) $(DEST)/zcall $(DEST)/etc $(DEST)/doc
 	@rm -f $(DEST)/zcall/*.pyc    # force recompiling of any .pyc files
-	install $(SCRIPTS)/*.py $(SCRIPTS)/*.r $(DEST)/zcall
+	install $(SCRIPTS)/*.py $(SCRIPTS)/*.r $(SCRIPTS)/findMeanSD $(SCRIPTS)/findThresholds $(DEST)/zcall
 	install $(ETC)/*.ini $(DEST)/etc
 	@echo -e "Writing documentation..."
 	$(CREATE_DOCS)/createDocs.py --recursive

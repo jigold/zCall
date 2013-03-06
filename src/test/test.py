@@ -13,6 +13,7 @@ Required input data:
 - Example BPM, EGT files
 - Example GTC files -- may have privacy issues
 - (TODO Test on public GTC data, with corresponding BPM/EGT)
+- (TODO Create and test a one-step "wrapper" script to calibrate, evaluate and call without any parallelization)
 
 Author:  Iain Bancarz, ib5@sanger.ac.uk
 """
@@ -73,8 +74,10 @@ class TestScripts(unittest.TestCase):
         self.egtPath = os.path.join(self.bigData, 'HumanExome-12v1.egt')
         self.gtcPaths = []
         # TODO generate json using self.bigData, instead of using hard-coded
+        # TODO automatically generate threshold.txt files, if not present
         for name in ('gtc00.json', 'gtc01.json'): 
             self.gtcPaths.append(os.path.join(self.dataDir, name))
+        self.gtcPath = os.path.join(self.dataDir, 'gtc.json')
         self.thresholdJsonName = 'thresholds.json'
         self.thresholdJson = os.path.join(self.bigData, self.thresholdJsonName)
         if os.path.exists(self.thresholdJson):
@@ -113,11 +116,14 @@ class TestScripts(unittest.TestCase):
                     '--egt', self.egtPath,
                     '--bpm', self.bpmPath,
                     '--thresholds', self.thresholdJson)
-        for i in range(len(self.gtcPaths)):
+        ranges = ((0,4), (4,8))
+        for i in range(len(ranges)):
+            (start, end) = ranges[i]
             args = list(argsBase)
             name = 'metrics0'+str(i)+'.json'
             outPath = os.path.join(self.outDir, name)
-            args.extend(['--gtc', self.gtcPaths[i], '--out', outPath ])
+            args.extend(['--gtc', self.gtcPath, '--start', str(start),
+                         '--end', str(end), '--out', outPath ])
             self.assertEqual(os.system(' '.join(args)), 0) # run script
             metricsNew = json.loads(open(outPath).read())
             oldPath = os.path.join(self.dataDir, name)
@@ -145,7 +151,7 @@ class TestScripts(unittest.TestCase):
         #TODO read output data into PLINK to verify it is well-formatted
         outPath = os.path.join(self.outDir, 'test.bed')
         tPath = os.path.join(self.bigData, 'thresholds_HumanExome-12v1_z07.txt')
-        args = ['zcall/call.py',
+        args = ['zcall/runZCall.py',
                 '--thresholds', tPath,
                 '--bpm', self.bpmPath,
                 '--egt', self.egtPath,

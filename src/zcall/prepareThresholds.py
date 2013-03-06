@@ -7,7 +7,7 @@ Iain Bancarz, ib5@sanger.ac.uk
 January 2013
 """
 
-import os, sys
+import os, sys, time
 try: 
     import argparse, json
     from calibration import ThresholdFinder
@@ -27,7 +27,10 @@ Recommended default Z score = 7.  Suggested range of alternatives = 3 to 15.
 
 def main():
     # 'main' method to run script from command line
+    start = time.time()
     args = validate_args()
+    verbose = args['verbose']
+    if verbose: print "Starting prepareThresholds.py"
     egt = os.path.abspath(args['egt'])
     out = os.path.abspath(args['out'])
     indexPath = os.path.join(out, args['index_name'])
@@ -41,6 +44,8 @@ def main():
     index = open(indexPath, 'w')
     index.write(json.dumps(thresholdPaths))
     index.close()
+    duration = time.time() - start
+    if verbose: print "Finished. Duration:", round(duration, 1), "s"
     
 def validate_args():
     # parse command-line arguments and return dictionary of params

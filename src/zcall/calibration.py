@@ -296,15 +296,16 @@ class SampleEvaluator(SharedBase):
             (counts, concord, gain) = results[z]           
             converted = self.convertCountKeys(counts)
             output.append([gtcName, z, concord, gain, converted])
-            #output.append([gtcName, z, concord, gain, counts])
         return output
 
-    def run(self, thresholdPath, sampleJson, outPath, verbose=False):
+    def run(self, thresholdPath, sampleJson, start, end, outPath,verbose=False):
         """Evaluate thresholds for given list of sample GTC paths
 
         Inputs:
         - Path to .json file with hash of paths to threshold.txt files
         - Path to .json file with paths of sample GTC files
+        - Start index in GTC .json file (use to split GTC for batch processing)
+        - End index in GTC .json file
         - Output path
 
         Output:
@@ -320,6 +321,13 @@ class SampleEvaluator(SharedBase):
         if verbose: print "Evaluating samples."
         output = []
         gtcPaths = self.readSampleJson(sampleJson)
+        if start>=end:
+            raise ValueError("Must have GTC start index < end index")
+        elif start < 0:
+            raise ValueError("Must have GTC start index > 0")
+        elif end > len(gtcPaths):
+            raise ValueError("Must have GTC end index <= total GTC paths")
+        gtcPaths = gtcPaths[start:end]
         for gtcPath in gtcPaths:
             gtc = GTC(gtcPath, self.bpm.normID)
             output.extend(self.evaluate(thresholds, gtc, verbose))

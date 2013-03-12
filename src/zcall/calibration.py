@@ -124,7 +124,7 @@ class MetricEvaluator(SharedBase):
         """
         rows = []
         for inPath in inPaths:
-            rows.extend(json.loads(open(inPath).read()))
+            rows.extend(json.loads(open(str(inPath)).read()))
         zCounts = {}
         concords = {}
         gains = {}
@@ -151,15 +151,11 @@ class MetricEvaluator(SharedBase):
         """Find best z score & thresholds.txt, write to file for later use
 
         Arguments:
-        - Text file listing SampleEvaluator output paths, one per line
+        - JSON file listing SampleEvaluator output paths
         - JSON file with hash of thresholds.txt paths by z score
         - Output directory
         """
-        inPaths = []
-        lines = open(resultsPath).readlines()
-        for line in lines:
-            line = line.strip()
-            if line!='': inPaths.append(line)
+        inPaths = json.loads(open(resultsPath).read())
         (metrics, concords, gains) = self.findMeans(inPaths)
         best = self.findBestZ(concords, gains)
         thresholdPaths = json.loads(open(thresholdPath).read())

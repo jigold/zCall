@@ -78,6 +78,8 @@ class TestScripts(unittest.TestCase):
         for name in ('gtc00.json', 'gtc01.json'): 
             self.gtcPaths.append(os.path.join(self.dataDir, name))
         self.gtcPath = os.path.join(self.dataDir, 'gtc.json')
+        self.metricIndex = os.path.join(self.bigData,
+                                        'evaluation_metric_index.json')
         self.thresholdJsonName = 'thresholds.json'
         self.thresholdJson = os.path.join(self.bigData, self.thresholdJsonName)
         if os.path.exists(self.thresholdJson):
@@ -134,7 +136,7 @@ class TestScripts(unittest.TestCase):
         """Merge evaluation results and find best Z score"""
         outPath = os.path.join(self.outDir, 'zEvaluation.json')
         args = ['zcall/mergeEvaluation.py',
-                '--metrics', 'data/metrics.txt',
+                '--metrics', self.metricIndex,
                 '--thresholds', self.thresholdJson,
                 '--out', outPath ]
         self.assertEqual(os.system(' '.join(args)), 0) # run script

@@ -1,6 +1,7 @@
 #! /usr/bin/python
 
 import sys
+sys.path.append(sys.path[0]+'/../zcall')
 from BPM import *
 from optparse import OptionParser
 

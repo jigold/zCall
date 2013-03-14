@@ -39,5 +39,11 @@ class BPM:
                 self.normID.append(int(fields[8])) # normalization ID for that snp
         self.numSNPs = len(self.names)
 
+    def getChromosomes(self):
+        return self.chr
+
+    def getPositions(self):
+        return self.pos
+
     def getTotalSNPs(self):
         return self.numSNPs

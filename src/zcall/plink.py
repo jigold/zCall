@@ -5,7 +5,7 @@
 See http://pngu.mgh.harvard.edu/~purcell/plink/
 """
 
-import struct
+import json, struct
 from BPM import *
 
 class PlinkHandler:
@@ -69,6 +69,58 @@ class PlinkHandler:
             else: chroms[i] = int(chroms[i])
         return chroms
 
+    def parseBed(self, bed):
+        """Parse a single byte from a .bed file"""
+        parsed = bin(ord(bed))[2:]
+        gap = 8 - len(parsed)
+        if gap > 0: parsed = ''.join(['0']*gap)+parsed
+        elif gap < 0: raise ValueError
+        # parsed is now a string of the form '01101100'
+        return parsed
+
+    def readGenotypes(self, parsedBed):
+        """Read a block of 4 genotypes from a parsed .bed string 
+
+        Return in numeric format: 0 - "No Call", 1 - AA, 2 - AB, 3 - BB
+        """
+        parsedBed = parsedBed[::-1] # reverse character order
+        i = 0
+        gtypes = []
+        while i < len(parsedBed):
+            pair = parsedBed[i:i+2]
+            if pair=='00': gtype = 1
+            elif pair=='01': gtype = 2
+            elif pair=='11': gtype = 3
+            elif pair=='10': gtype = 0
+            else: raise ValueError("Invalid genotype string")
+            gtypes.append(gtype)
+            i += 2
+        return gtypes
+
+    def readBedFile(self, bedPath, sampleTotal):
+        """Read genotype calls from a Plink .bed file
+
+        Input should be in (default) SNP-major order
+        May have extra 'null' calls, to have integer number of bytes per sample
+        Need total samples to identify and strip off null padding (if any)
+        """
+        bed = open(bedPath).read()
+        total = 0
+        if ord(bed[0])!=108 or ord(bed[1])!=27:
+            raise ValueError("Header does not start with Plink 'magic number'!")
+        elif ord(bed[2])!=1:
+            raise ValueError("Plink .bed file must be in SNP-major order.")
+        gtypes = []
+        calls = 0 # calls for current SNP; should be one per sample
+        for i in range(3, len(bed)): # skip first 3 bytes 
+            gtBlock = self.readGenotypes(self.parseBed(bed[i])) # 4 genotypes
+            gtypes.extend(gtBlock)
+            calls += len(gtBlock)
+            if calls >= sampleTotal: # remove padding (if any), reset count
+                while len(gtypes) % sampleTotal != 0: gtypes.pop()
+                calls = 0
+        return gtypes
+
     def snpSortMap(self):
         """Sort snps into (chromosome, position) order
 
@@ -103,11 +155,61 @@ class PlinkHandler:
         out.close()
         if verbose: print len(output), "bytes written."
 
-    def writeBim(self):
+    def writeBim(self, outPath, manifestNames=True):
         """Write a Plink .bim file to accompany .bed output
 
         Similar to Plink .map format, except:
         - 2 additional columns for allele names (use A and B as dummy values)
-        - Entries are sorted into (chromosome, position) order
+        - Entries are *sorted* into (chromosome, position) order
+        - Chromosomes are given numeric codes (including for X, Y, etc.)
         """
-        pass
+        unsorted = [None]*self.snpTotal
+        for i in range(self.snpTotal):
+             snp = self.bpm.names[i]
+             chr = self.bpm.chr[i]
+             pos = self.bpm.pos[i]
+             if manifestNames:
+                 alleleA = self.bpm.A[i]
+                 alleleB = self.bpm.B[i]
+             else:
+                 alleleA = 'A'
+                 alleleB = 'B'
+             out = [chr, snp, "0", pos, alleleA, alleleB]
+             unsorted[i] = out
+        # sort manifest entries
+        out = [None]*self.snpTotal
+        for i in range(self.snpTotal):
+            out[self.sortMap[i]] = unsorted[i]
+        # write to file
+        outFile = open(outPath, 'w')
+        for i in range(self.snpTotal):
+            words = []
+            for item in out[i]: words.append(str(item))
+            outFile.write("\t".join(words)+"\n")
+        outFile.close()
+
+    def writeFam(self, sampleJson, outPath):
+        """Write a Plink .fam file to accompany .bed output
+
+        Contains information on each sample. Fields in .fam:
+        - Family ID
+        - Individual ID
+        - Paternal ID
+        - Maternal ID
+        - Sex (1=male; 2=female; other=unknown)
+        - Phenotype
+        Conventionally, set family/individual IDs to sample URI
+        Set sex if known
+        Other values set to -9 as placeholder
+        """
+        samples = json.loads(open(sampleJson).read())
+        outLines = []
+        for sample in samples:
+            out = ['-9']*6
+            out[0] = sample['uri']
+            out[1] = sample['uri']
+            out[4] = str(sample['gender_code'])
+            outLines.append(' '.join(out)+"\n")
+        outFile = open(outPath, 'w')
+        outFile.write(outLines)
+        outFile.close()

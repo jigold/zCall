@@ -7,7 +7,7 @@ CREATE_DOCS = src/create_docs
 ETC =       src/etc
 
 usage:
-	@echo -e "Usage: make install PREFIX=<destination directory>\nWill install to the zCall subdirectory of PREFIX."
+	@echo -e "Usage: make install PREFIX=<destination directory>\nWill install to the zCall subdirectory of PREFIX.\nPREFIX must exist, zCall subdirectory will be created if necessary."
 
 install: $(PREFIX)
 	@echo -e "Installing scripts..."

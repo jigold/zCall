@@ -26,9 +26,7 @@ class SampleCaller(CallingBase):
         Return genotypes in numeric format
         0 - "No Call", 1 - AA, 2 - AB, 3 - BB
 
-        If given, sortMap is used to reorder SNP calls by (chromosome, position)
-        Reordering ensures compatibility with sorted .bim files
-        If null, output the original calls (which may be reordered)
+        If null, output the unchanged original calls (use for testing)
         """
         calls = []
         for i in range(self.snpTotal):

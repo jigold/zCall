@@ -162,8 +162,8 @@ class TestScripts(unittest.TestCase):
             ]
         self.assertEqual(os.system(' '.join(args)), 0) # run script
         checksum = self.getMD5hex(outPath)
-        expected = '9541ecbd874b80a301b22295ea05e888'
-        self.assertEqual(checksum, expected)
+        expected = '066cfdbf8c03da51b2b2d56c3e04efed'
+        self.assertEqual(checksum, expected)       
         
 
 if __name__ == "__main__":

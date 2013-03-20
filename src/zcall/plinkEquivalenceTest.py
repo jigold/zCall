@@ -40,6 +40,7 @@ class PlinkEquivalenceTester(PlinkHandler):
         len2 = len(open(famPath2).readlines())
         if len1 != len2:
             raise ValueError(".fam files of unequal size!")
+        print len1, "samples found."
         return len1
 
     def compareGenotypes(self, g1, g2):
@@ -102,13 +103,9 @@ def main():
 
     bpmPath = sys.argv[1]
     stem1 = sys.argv[2]
-    stem2 = sys.argv[3]
-    
+    stem2 = sys.argv[3]    
     bpm = BPM(bpmPath)
-    pet = PlinkEquivalenceTester(bpm)
-    equiv = pet.plinkBinaryEquivalent(stem1, stem2)
-    if equiv: print "Flip status equivalent."
-    else: print "Flip status not equivalent!"
+    PlinkEquivalenceTester(bpm).plinkBinaryEquivalent(stem1, stem2)
 
 if __name__ == "__main__":
     main()

@@ -16,6 +16,8 @@ except ImportError:
 
 description = "Convenience script to generate HTML documentation for zCall"
 parser = argparse.ArgumentParser(description=description)
+parser.add_argument('--out', required=True,  metavar="PATH", 
+                    help="Directory in which to write HTML output files.")
 parser.add_argument('--recursive', action='store_true', default=False,
                     help="Recursively import documentation for dependencies. If not recursive, zcall documents will contain broken links to standard modules.")
 parser.add_argument('--verbose', action='store_true', default=False,
@@ -29,7 +31,12 @@ if not verbose: # suppress stdout chatter from pydoc.writedoc
 localDir = os.path.dirname(os.path.realpath(__file__))
 zcallDir = os.path.abspath(localDir+"/../zcall")
 sys.path.append(os.path.abspath(localDir+"/..")) # allows import from zcall dir
-os.chdir(localDir) # write html to createDocs.py directory
+outDir = args['out']
+if not (os.access(outDir, os.W_OK) and os.path.isdir(outDir)):
+    msg = "ERROR: Output path "+outDir+" is not writable, or not a directory.\n"
+    sys.stderr.write(msg)
+    sys.exit(1)
+os.chdir(outDir) # write html to createDocs.py directory
 
 import zcall
 pydoc.writedoc(zcall)
@@ -47,4 +54,4 @@ for script in os.listdir(zcallDir):
 for module in modules:
     pydoc.writedoc(import_module(module))
 
-# NB findThresholds and findMeanSD files are only ever run as scripts, not imported.  Omitting the .py extension from these files prevents pydoc from creating broken links in the main zcall page.
+# NB findThresholds and findMeanSD files can only be run as scripts, not imported.  Omitting the .py extension from these files prevents pydoc from creating broken links in the main zcall page.

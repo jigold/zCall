@@ -211,5 +211,5 @@ class PlinkHandler:
             out[4] = str(sample['gender_code'])
             outLines.append(' '.join(out)+"\n")
         outFile = open(outPath, 'w')
-        outFile.write(outLines)
+        outFile.write("".join(outLines))
         outFile.close()

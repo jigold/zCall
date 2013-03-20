@@ -18,6 +18,8 @@ class SampleCaller(CallingBase):
 
     initialize with: bpmPath, egtPath, threshPath
     Write output in .bed format; use merge_bed in genotyping pipeline workflows
+    Construct Plink .bim manifest file from BPM object
+    Optionally, use sample JSON file to construct Plink .fam file
     """
 
     def makeCalls(self, gtc, null=False):
@@ -40,7 +42,7 @@ class SampleCaller(CallingBase):
                 calls.append(origCall)
         return calls
 
-    def run(self, samplesPath, outPath, verbose=False, null=False, 
+    def run(self, samplesPath, outStem, verbose=False, null=False, 
             reorder=True):
         """Apply zCall to GTC files and write Plink .bed output"""
         gtcPaths = self.readSampleJson(samplesPath)
@@ -50,7 +52,9 @@ class SampleCaller(CallingBase):
             if verbose: print "Calling GTC file", gtcPath
             gtc = GTC(gtcPath, self.bpm.normID)
             calls.extend(ph.callsToBinary(self.makeCalls(gtc, null), reorder))
-        ph.writeBed(calls, outPath, verbose)
+        ph.writeBed(calls, outStem+'.bed', verbose)
+        ph.writeBim(outStem+'.bim')
+        ph.writeFam(samplesPath, outStem+'.fam')
 
 
 def main():
@@ -63,30 +67,30 @@ def main():
                         help="BPM .csv manifest file")
     parser.add_argument('--egt', required=True, metavar="PATH", 
                         help="EGT input file")    
-    parser.add_argument('--gtc', required=True, metavar="PATH", 
-                        help="Path to .json file containing .gtc input paths")
+    parser.add_argument('--samples', required=True, metavar="PATH", 
+                        help="Path to .json file containing sample URI's, genders, and .gtc input paths")
     parser.add_argument('--out', required=True, metavar="PATH", 
-                        help="Path for Plink .bed binary output")
+                        help="Path stem for Plink binary output, without .bed, .bim, .fam suffix")
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
     parser.add_argument('--null', action='store_true', default=False,
                         help="Do not apply zcall. Instead output GTC calls unchanged to an individual-major Plink binary file. Used for testing.")
     args = vars(parser.parse_args())
-    inputKeys = ['thresholds', 'bpm', 'egt', 'gtc']
+    inputKeys = ['thresholds', 'bpm', 'egt', 'samples']
     for key in inputKeys:
         if not os.access(args[key], os.R_OK):
             raise OSError("Cannot read input path \""+args[key]+"\"")
         else:
             args[key] = os.path.abspath(args[key])
     (dirName, fileName) = os.path.split(os.path.abspath(args['out']))
-    if fileName=='' or not os.access(dirName, os.R_OK):
+    if not os.access(dirName, os.R_OK) or not os.path.isdir(dirName):
         raise OSError("Invalid output path \""+args['out']+"\"")
     else:
-        args['out'] = os.path.abspath(args['out'])
+        args['out'] = os.path.join(os.path.abspath(dirName), fileName)
     if args['null']:
         print "WARNING: Null option in effect, input calls will not be changed"
     caller = SampleCaller(args['bpm'], args['egt'], args['thresholds'])
-    caller.run(args['gtc'], args['out'], args['verbose'], args['null'])
+    caller.run(args['samples'], args['out'], args['verbose'], args['null'])
 
 if __name__ == "__main__":
     main()

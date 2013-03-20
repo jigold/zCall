@@ -31,30 +31,52 @@ class SampleCaller(CallingBase):
         If null, output the unchanged original calls (use for testing)
         """
         calls = []
+        zcalls = 0
+        gains = 0
         for i in range(self.snpTotal):
             origCall = gtc.genotypes[i]
             if null==False \
                     and origCall == 0 \
                     and self.thresholds.getX(i) != "NA" \
                     and self.thresholds.getY(i) != "NA":
-                calls.append(self.call(gtc, i))
+                zcall = self.call(gtc, i)
+                calls.append(zcall)
+                zcalls += 1
+                if zcall!=0: gains += 1
             else:
                 calls.append(origCall)
-        return calls
+        return (calls, zcalls, gains)
 
-    def run(self, samplesPath, outStem, verbose=False, null=False, 
-            reorder=True):
+    def run(self, samplesPath, outStem, logPath=None, verbose=False, 
+            null=False, reorder=True):
         """Apply zCall to GTC files and write Plink .bed output"""
         gtcPaths = self.readSampleJson(samplesPath)
         calls = []
         ph = PlinkHandler(self.bpm)
+        zcallTotal = 0
+        gainsTotal = 0
         for gtcPath in gtcPaths:
             if verbose: print "Calling GTC file", gtcPath
             gtc = GTC(gtcPath, self.bpm.normID)
-            calls.extend(ph.callsToBinary(self.makeCalls(gtc, null), reorder))
+            (callsRaw, zcalls, gains) = self.makeCalls(gtc, null)
+            zcallTotal += zcalls
+            gainsTotal += gains
+            calls.extend(ph.callsToBinary(callsRaw, reorder))
         ph.writeBed(calls, outStem+'.bed', verbose)
         ph.writeBim(outStem+'.bim')
         ph.writeFam(samplesPath, outStem+'.fam')
+        logData = { 'total_samples': len(gtcPaths),
+                    'sample_json': samplesPath,
+                    'plink_output': outStem,
+                    'total_snps': self.snpTotal,
+                    'total_calls': self.snpTotal*len(gtcPaths),
+                    'zcall_attempts': zcallTotal,
+                    'zcall_gains': gainsTotal, }
+        if logPath!=None:
+            log = open(logPath, 'w')
+            log.write(json.dumps(logData, sort_keys=True,
+                      indent=4, separators=(',', ': '))+"\n")
+            log.close()
 
 
 def main():
@@ -71,6 +93,8 @@ def main():
                         help="Path to .json file containing sample URI's, genders, and .gtc input paths")
     parser.add_argument('--out', required=True, metavar="PATH", 
                         help="Path stem for Plink binary output, without .bed, .bim, .fam suffix")
+    parser.add_argument('--log', metavar="PATH", default=None,
+                        help="Path for .json log output. Defaults to zcall_log.json in same directory as Plink output.")
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
     parser.add_argument('--null', action='store_true', default=False,
@@ -87,10 +111,15 @@ def main():
         raise OSError("Invalid output path \""+args['out']+"\"")
     else:
         args['out'] = os.path.join(os.path.abspath(dirName), fileName)
+    if args['log'] == None:
+        args['log'] = os.path.join(os.path.abspath(dirName), 'zcall_log.json')
+    else:
+        args['log'] = os.path.abspath(args['log'])
     if args['null']:
         print "WARNING: Null option in effect, input calls will not be changed"
     caller = SampleCaller(args['bpm'], args['egt'], args['thresholds'])
-    caller.run(args['samples'], args['out'], args['verbose'], args['null'])
+    caller.run(args['samples'], args['out'], args['log'], args['verbose'], 
+               args['null'])
 
 if __name__ == "__main__":
     main()

@@ -47,7 +47,7 @@ class SampleCaller(CallingBase):
                 calls.append(origCall)
         return (calls, zcalls, gains)
 
-    def run(self, samplesPath, outStem, logPath=None, verbose=False, 
+    def run(self, samplesPath, outDir, prefix, logPath=None, verbose=False, 
             null=False, reorder=True):
         """Apply zCall to GTC files and write Plink .bed output"""
         gtcPaths = self.readSampleJson(samplesPath)
@@ -62,6 +62,7 @@ class SampleCaller(CallingBase):
             zcallTotal += zcalls
             gainsTotal += gains
             calls.extend(ph.callsToBinary(callsRaw, reorder))
+        outStem = os.path.join(outDir, prefix)
         ph.writeBed(calls, outStem+'.bed', verbose)
         ph.writeBim(outStem+'.bim')
         ph.writeFam(samplesPath, outStem+'.fam')
@@ -91,8 +92,10 @@ def main():
                         help="EGT input file")    
     parser.add_argument('--samples', required=True, metavar="PATH", 
                         help="Path to .json file containing sample URI's, genders, and .gtc input paths")
-    parser.add_argument('--out', required=True, metavar="PATH", 
-                        help="Path stem for Plink binary output, without .bed, .bim, .fam suffix")
+    parser.add_argument('--out', required=True, metavar="DIR", 
+                        help="Directory for output data")
+    parser.add_argument('--plink', default='zcall', metavar="STRING", 
+                        help="Prefix for Plink output files")
     parser.add_argument('--log', metavar="PATH", default=None,
                         help="Path for .json log output. Defaults to zcall_log.json in same directory as Plink output.")
     parser.add_argument('--verbose', action='store_true', default=False,
@@ -106,20 +109,20 @@ def main():
             raise OSError("Cannot read input path \""+args[key]+"\"")
         else:
             args[key] = os.path.abspath(args[key])
-    (dirName, fileName) = os.path.split(os.path.abspath(args['out']))
+    dirName = os.path.abspath(args['out'])
     if not os.access(dirName, os.R_OK) or not os.path.isdir(dirName):
-        raise OSError("Invalid output path \""+args['out']+"\"")
+        raise OSError("Invalid output directory \""+args['out']+"\"")
     else:
-        args['out'] = os.path.join(os.path.abspath(dirName), fileName)
+        args['out'] = dirName
     if args['log'] == None:
-        args['log'] = os.path.join(os.path.abspath(dirName), 'zcall_log.json')
+        args['log'] = os.path.join(args['out'], 'zcall_log.json')
     else:
         args['log'] = os.path.abspath(args['log'])
     if args['null']:
         print "WARNING: Null option in effect, input calls will not be changed"
     caller = SampleCaller(args['bpm'], args['egt'], args['thresholds'])
-    caller.run(args['samples'], args['out'], args['log'], args['verbose'], 
-               args['null'])
+    caller.run(args['samples'], args['out'], args['plink'], args['log'], 
+               args['verbose'], args['null'])
 
 if __name__ == "__main__":
     main()

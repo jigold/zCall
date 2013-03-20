@@ -87,7 +87,7 @@ class TestScripts(unittest.TestCase):
         else:
             sys.stderr.write("WARNING: Missing thresholds, see test/README.")
 
-    def notest_prepareThresholds(self):
+    def test_prepareThresholds(self):
         """Prepare thresholds.txt files
 
         Run as part of normal test suite
@@ -112,7 +112,7 @@ class TestScripts(unittest.TestCase):
         self.assertTrue(os.access(jsonOut, os.R_OK))
         self.validateThresholds(jsonOut)
 
-    def notest_evaluateThresholds(self):
+    def test_evaluateThresholds(self):
         """Evaluate thresholds for collections of sample GTC files"""
         argsBase = ('zcall/evaluateThresholds.py',
                     '--egt', self.egtPath,
@@ -132,7 +132,7 @@ class TestScripts(unittest.TestCase):
             metricsOld = json.loads(open(oldPath).read())
             self.assertEqual(metricsOld, metricsNew)
 
-    def notest_mergeEvaluation(self):
+    def test_mergeEvaluation(self):
         """Merge evaluation results and find best Z score"""
         outPath = os.path.join(self.outDir, 'zEvaluation.json')
         args = ['zcall/mergeEvaluation.py',
@@ -150,7 +150,8 @@ class TestScripts(unittest.TestCase):
 
     def test_call(self):
         """Re-call GTC files using zCall"""
-        outStem = os.path.join(self.outDir, 'test')
+        prefix = 'test'
+        outStem = os.path.join(self.outDir, prefix)
         tPath = os.path.join(self.bigData, 'thresholds_HumanExome-12v1_z07.txt')
         logPath = os.path.join(self.outDir, 'zcall_log.json')
         args = ['zcall/runZCall.py',
@@ -158,7 +159,8 @@ class TestScripts(unittest.TestCase):
                 '--bpm', self.bpmPath,
                 '--egt', self.egtPath,
                 '--samples', os.path.join(self.dataDir, 'test_sample.json'),
-                '--out', outStem,
+                '--out', self.outDir,
+                '--plink', prefix,
                 '--log', logPath
             ]
         self.assertEqual(os.system(' '.join(args)), 0) # run script

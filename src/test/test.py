@@ -150,21 +150,27 @@ class TestScripts(unittest.TestCase):
 
     def test_call(self):
         """Re-call GTC files using zCall"""
-        #TODO read output data into PLINK to verify it is well-formatted
-        outPath = os.path.join(self.outDir, 'test.bed')
+        outStem = os.path.join(self.outDir, 'test')
         tPath = os.path.join(self.bigData, 'thresholds_HumanExome-12v1_z07.txt')
         args = ['zcall/runZCall.py',
                 '--thresholds', tPath,
                 '--bpm', self.bpmPath,
                 '--egt', self.egtPath,
-                '--gtc', os.path.join(self.dataDir, 'gtc.json'),
-                '--out', outPath,
+                '--samples', os.path.join(self.dataDir, 'test_sample.json'),
+                '--out', outStem,
             ]
         self.assertEqual(os.system(' '.join(args)), 0) # run script
-        checksum = self.getMD5hex(outPath)
-        expected = '066cfdbf8c03da51b2b2d56c3e04efed'
-        self.assertEqual(checksum, expected)       
-        
+        suffixes = ['.bed', '.bim', '.fam']
+        expected = ['55fa3cfd960d43366cb506ab004ac300',
+                    '19dd8929cd63e3ee906e43b9bb59cd02',
+                    'b836bd45459de6a9bc4b8d92e8c9e298']
+        for i in range(len(suffixes)):
+             checksum = self.getMD5hex(outStem+suffixes[i])
+             self.assertEqual(checksum, expected[i])       
+        startDir = os.getcwd()
+        os.chdir(self.outDir)
+        self.assertEqual(0, os.system('plink --bfile test > /dev/null'))
+        os.chdir(startDir)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

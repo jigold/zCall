@@ -108,6 +108,9 @@ class MetricEvaluator(SharedBase):
     def __init__(self):
         pass
 
+    def getBestThresholdKey(self):
+        return self.T_KEY
+
     def findBestZ(self, concords, gains):
         """Find best z score from mean concordance/gain values
 
@@ -162,15 +165,14 @@ class MetricEvaluator(SharedBase):
             out.close()
         return (rows, concords, gains)
 
-    def writeBest(self, resultsPath, thresholdPath, outPath):
+    def writeBest(self, inPaths, thresholdPath, outPath):
         """Find best z score & thresholds.txt, write to file for later use
 
         Arguments:
-        - JSON file listing SampleEvaluator output paths
+        - List of SampleEvaluator output paths
         - JSON file with hash of thresholds.txt paths by z score
         - Output directory
         """
-        inPaths = json.loads(open(resultsPath).read())
         (metrics, concords, gains) = self.findMeans(inPaths)
         best = self.findBestZ(concords, gains)
         thresholdPaths = json.loads(open(thresholdPath).read())
@@ -179,6 +181,7 @@ class MetricEvaluator(SharedBase):
         out = open(outPath, 'w')
         out.write(json.dumps(results))
         out.close()
+        return results
         
 
 class MetricFinder(CallingBase):
@@ -332,6 +335,7 @@ class SampleEvaluator(SharedBase):
         if verbose: print "Evaluating samples."
         output = []
         gtcPaths = self.readSampleJson(sampleJson)
+        if end==-1: end = len(gtcPaths)
         if start>=end:
             raise ValueError("Must have GTC start index < end index")
         elif start < 0:

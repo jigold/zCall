@@ -186,7 +186,7 @@ class TestScripts(unittest.TestCase):
     def test_complete(self):
         """Test self-contained zcall script"""
         zstart = 6
-        ztotal = 3
+        ztotal = 5
         args = ['zcall/zCallComplete.py',
                 '--bpm', self.bpmPath,
                 '--egt', self.egtPath,
@@ -199,7 +199,7 @@ class TestScripts(unittest.TestCase):
         self.assertEqual(os.system(' '.join(args)), 0)
         outStem = os.path.join(self.outDir, self.prefix)
         suffixes = ['.bed', '.bim', '.fam']
-        expected = ['8e222b46b0760cba5de1d2bded337c76',
+        expected = ['ee6a6e8cb8c9a4c0cf2eb42eddc93304',
                     '19dd8929cd63e3ee906e43b9bb59cd02',
                     'b836bd45459de6a9bc4b8d92e8c9e298']
         for i in range(len(suffixes)):

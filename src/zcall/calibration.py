@@ -114,18 +114,18 @@ class MetricEvaluator(SharedBase):
     def findBestZ(self, concords, gains):
         """Find best z score from mean concordance/gain values
 
-        The 'best' is defined as the smallest z s.t. mean concordance > mean gain; or if none exists, return z with minimum of gain - concordance"""
+        The 'best' is defined as the smallest z s.t. mean concordance > mean gain; or if none exists, return z with minimum of gain - concordance.  Note that z keys in hash are strings, but need to sort them in integer order."""
         concordanceGreaterThanGain = []
         gainMinusConcord = {}
         for z in concords.keys():
             concord = concords[z]
             gain = gains[z]
-            if concord > gain: concordanceGreaterThanGain.append(z)
+            if concord > gain: concordanceGreaterThanGain.append(int(z))
             gainMinusConcord[z] = gain - concord
         best = None
         bestType = 0
         if len(concordanceGreaterThanGain)>0:
-            best = min(concordanceGreaterThanGain)
+            best = str(min(concordanceGreaterThanGain))
         else:
             leastDiff = min(gainMinusConcord.values())
             for z in gainMinusConcord.keys():
@@ -135,7 +135,7 @@ class MetricEvaluator(SharedBase):
                     break
         return best
 
-    def findMeans(self, inPaths, outPath=None):
+    def findMeans(self, inPaths, verbose=False, outPath=None):
         """Read JSON result paths, find mean concordance/gain by z score
 
         Return concatenation of results and concordance/gain metrics
@@ -146,6 +146,7 @@ class MetricEvaluator(SharedBase):
         zCounts = {}
         concords = {}
         gains = {}
+        zIntegers = set()
         for row in rows:
             [gtc, z, concord, gain, counts] = row
             try: 
@@ -156,16 +157,23 @@ class MetricEvaluator(SharedBase):
                 zCounts[z] = 1
                 concords[z] = concord
                 gains[z] = gain
-        for z in zCounts.keys():
+            zIntegers.add(int(z))
+        zIntegers = list(zIntegers)
+        zIntegers.sort()
+        if verbose: print "z\tconcord\tgain"
+        for zInt in zIntegers:
+            z = str(zInt)
             concords[z] = concords[z] / float(zCounts[z])
             gains[z] = gains[z] / float(zCounts[z])
+            if verbose: print z+"\t"+str(round(concords[z], 4))+"\t"+\
+                    str(round(gains[z], 4))
         if outPath!=None:
             out = open(outPath, 'w')
             out.write(json.dumps(rows))
             out.close()
         return (rows, concords, gains)
 
-    def writeBest(self, inPaths, thresholdPath, outPath):
+    def writeBest(self, inPaths, thresholdPath, outPath, verbose=False):
         """Find best z score & thresholds.txt, write to file for later use
 
         Arguments:
@@ -173,8 +181,9 @@ class MetricEvaluator(SharedBase):
         - JSON file with hash of thresholds.txt paths by z score
         - Output directory
         """
-        (metrics, concords, gains) = self.findMeans(inPaths)
+        (metrics, concords, gains) = self.findMeans(inPaths, verbose)
         best = self.findBestZ(concords, gains)
+        if verbose: print self.Z_KEY+":"+best
         thresholdPaths = json.loads(open(thresholdPath).read())
         results = { self.Z_KEY:best, self.T_KEY:thresholdPaths[best],
                     self.M_KEY:metrics}

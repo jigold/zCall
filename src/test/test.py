@@ -56,8 +56,16 @@ class TestScripts(unittest.TestCase):
         for z in index.keys():
             self.assertEqual(self.getMD5hex(index[z]), self.expectedT[z])
 
+    def validatePlink(self, prefix):
+        """Check that Plink can parse dataset without crashing"""
+        startDir = os.getcwd()
+        os.chdir(self.outDir)
+        self.assertEqual(0, os.system('plink --bfile '+prefix+' > /dev/null'))
+        os.chdir(startDir)
+
     def setUp(self):
         """Check for valid input/output files and directories"""
+        self.prefix = 'test'
         self.dataDir = 'data'
         self.bigData = self.readConfig()
         for d in (self.dataDir, self.bigData):
@@ -86,6 +94,7 @@ class TestScripts(unittest.TestCase):
             self.validateThresholds(self.thresholdJson)
         else:
             sys.stderr.write("WARNING: Missing thresholds, see test/README.")
+        self.sampleJson = os.path.join(self.dataDir, 'test_sample.json')
 
     def test_prepareThresholds(self):
         """Prepare thresholds.txt files
@@ -150,17 +159,16 @@ class TestScripts(unittest.TestCase):
 
     def test_call(self):
         """Re-call GTC files using zCall"""
-        prefix = 'test'
-        outStem = os.path.join(self.outDir, prefix)
+        outStem = os.path.join(self.outDir, self.prefix)
         tPath = os.path.join(self.bigData, 'thresholds_HumanExome-12v1_z07.txt')
         logPath = os.path.join(self.outDir, 'zcall_log.json')
         args = ['zcall/runZCall.py',
                 '--thresholds', tPath,
                 '--bpm', self.bpmPath,
                 '--egt', self.egtPath,
-                '--samples', os.path.join(self.dataDir, 'test_sample.json'),
+                '--samples', self.sampleJson,
                 '--out', self.outDir,
-                '--plink', prefix,
+                '--plink', self.prefix,
                 '--log', logPath
             ]
         self.assertEqual(os.system(' '.join(args)), 0) # run script
@@ -173,10 +181,32 @@ class TestScripts(unittest.TestCase):
             checksum = self.getMD5hex(outStem+suffixes[i])
             self.assertEqual(checksum, expected[i])  
         self.assertTrue(os.path.exists(logPath))
-        startDir = os.getcwd()
-        os.chdir(self.outDir)
-        self.assertEqual(0, os.system('plink --bfile test > /dev/null'))
-        os.chdir(startDir)
+        self.validatePlink(self.prefix)
+
+    def test_complete(self):
+        """Test self-contained zcall script"""
+        zstart = 6
+        ztotal = 3
+        args = ['zcall/zCallComplete.py',
+                '--bpm', self.bpmPath,
+                '--egt', self.egtPath,
+                '--out', self.outDir,
+                '--zstart', str(zstart),
+                '--ztotal', str(ztotal),
+                '--samples', self.sampleJson,
+                '--plink', self.prefix
+                ]
+        self.assertEqual(os.system(' '.join(args)), 0)
+        outStem = os.path.join(self.outDir, self.prefix)
+        suffixes = ['.bed', '.bim', '.fam']
+        expected = ['8e222b46b0760cba5de1d2bded337c76',
+                    '19dd8929cd63e3ee906e43b9bb59cd02',
+                    'b836bd45459de6a9bc4b8d92e8c9e298']
+        for i in range(len(suffixes)):
+            self.assertTrue(os.path.exists(outStem+suffixes[i]))
+            checksum = self.getMD5hex(outStem+suffixes[i])
+            self.assertEqual(checksum, expected[i])  
+        self.validatePlink(self.prefix)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

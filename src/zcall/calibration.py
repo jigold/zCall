@@ -36,6 +36,8 @@ class ThresholdFinder:
 
 #    TODO  Modify findMeanSD and findThresholds so they can be imported, instead of being run in a subshell
  
+    INDEX_NAME = "thresholds.json"
+
     def __init__(self, configPath=None):
         if configPath==None:
             configPath = os.path.join(sys.path[0], '../etc/config.ini')
@@ -86,6 +88,19 @@ class ThresholdFinder:
         if verbose: print "Finished calibration."
         return outPath
 
+    def runMultiple(self, zstart, ztotal, egtPath, outDir, 
+                    verbose=True, force=False):
+        z = zstart
+        thresholdPaths = {}
+        for i in range(ztotal):
+            thresholdPath = self.run(egtPath, z, outDir, verbose, force)
+            thresholdPaths[str(z)] = thresholdPath # .json needs string as key
+            z += 1
+        indexPath = os.path.join(outDir, self.INDEX_NAME)
+        index = open(indexPath, 'w')
+        index.write(json.dumps(thresholdPaths))
+        index.close()
+        return indexPath
 
 class MetricEvaluator(SharedBase):
     """Class to assess concordance/gain metrics and choose best z score"""

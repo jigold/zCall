@@ -33,17 +33,9 @@ def main():
     if verbose: print "Starting prepareThresholds.py"
     egt = os.path.abspath(args['egt'])
     out = os.path.abspath(args['out'])
-    indexPath = os.path.join(out, args['index_name'])
-    z = args['zstart']
     tf = ThresholdFinder(os.path.abspath(args['config']))
-    thresholdPaths = {}
-    for i in range(args['ztotal']):
-        thresholdPath = tf.run(egt, z, out, args['verbose'], args['force'])
-        thresholdPaths[str(z)] = thresholdPath # .json requires string as key
-        z += 1
-    index = open(indexPath, 'w')
-    index.write(json.dumps(thresholdPaths))
-    index.close()
+    tf.runMultiple(args['zstart'], args['ztotal'], egt, out, verbose,
+                   args['force'])
     duration = time.time() - start
     if verbose: print "Finished. Duration:", round(duration, 1), "s"
     

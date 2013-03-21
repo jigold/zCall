@@ -13,7 +13,7 @@ or reuse of thresholds. It is intended as a convenience script for small
 datasets where parallelization is not required, and an illustration of the 
 zcall method.
 """
-import os, sys
+import os, sys, time
 try: 
     import argparse, json
 except ImportError: 
@@ -44,10 +44,10 @@ class ZCallComplete:
         eva.run(thresholds, gtc, start, end, outPath, verbose)
         return outPath
 
-    def merge(self, metricPath, thresholdJson, outDir):
+    def merge(self, metricPath, thresholdJson, outDir, verbose):
         outPath = os.path.join(outDir, self.MERGED)
         eva = MetricEvaluator()
-        results = eva.writeBest([metricPath,], thresholdJson, outPath)
+        results = eva.writeBest([metricPath,], thresholdJson, outPath, verbose)
         thresholdPath = results[eva.getBestThresholdKey()]
         return thresholdPath
 
@@ -72,7 +72,10 @@ class ZCallComplete:
                               self.args['gtc_end'],
                               self.args['out'],
                               self.args['verbose'])
-        thresholdPath = self.merge(mJson, tJson, self.args['out'])
+        thresholdPath = self.merge(mJson, 
+                                   tJson, 
+                                   self.args['out'], 
+                                   self.args['verbose'])
         self.call(self.args['bpm'],
                   self.args['egt'],
                   thresholdPath,
@@ -84,7 +87,11 @@ class ZCallComplete:
 
 def main():
     args = parseArgs()
+    start = time.time()
     ZCallComplete(args).run()
+    if args['verbose']==True:
+        duration = time.time() - start
+        print "zCall finished. Duration:", round(duration, 2), "seconds."
 
 def parseArgs():
     description = "Standalone script to run the complete zcall process: Generate and evaluate thresholds, and apply zcall to no-calls in the input data."

@@ -27,9 +27,9 @@ def main():
                         help="Path to .json file containing .gtc input paths")
     parser.add_argument('--out', required=True, metavar="PATH", 
                         help="Path for .json output")
-    parser.add_argument('--start', metavar="INT", default = 0,
+    parser.add_argument('--start', metavar="INT", default = 0, type=int,
                         help="Starting index in GTC .json file")
-    parser.add_argument('--end', metavar="INT", default = -1,
+    parser.add_argument('--end', metavar="INT", default = -1, type=int,
                         help="Ending index in GTC .json file")
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Print status information to standard output")
@@ -45,8 +45,8 @@ def main():
         raise OSError("Invalid output path \""+args['out']+"\"")
     
     eva = SampleEvaluator(args['bpm'], args['egt'])
-    eva.run(args['thresholds'], args['gtc'], int(args['start']), 
-            int(args['end']), args['out'], args['verbose'])
+    eva.run(args['thresholds'], args['gtc'], args['start'], 
+            args['end'], args['out'], args['verbose'])
 
 if __name__ == "__main__":
     main()

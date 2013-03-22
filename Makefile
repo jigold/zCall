@@ -3,7 +3,6 @@
 PREFIX = 	PREFIX_DIRECTORY    # dummy value as default
 DEST =		$(PREFIX)/zCall
 SCRIPTS =	src/zcall
-CREATE_DOCS = src/create_docs
 ETC =       src/etc
 
 usage:
@@ -16,6 +15,5 @@ install: $(PREFIX)
 	install $(SCRIPTS)/*.py $(SCRIPTS)/*.r $(SCRIPTS)/findMeanSD $(SCRIPTS)/findThresholds $(DEST)/zcall
 	install $(ETC)/*.ini $(DEST)/etc
 	@echo -e "Writing documentation..."
-	$(CREATE_DOCS)/createDocs.py --recursive
-	install $(CREATE_DOCS)/*.html $(DEST)/doc
+	$(SCRIPTS)/createDocs.py --out  $(DEST)/doc --recursive
 	@echo -e "Installation complete. See $(DEST)/doc/zcall.html for class documentation."

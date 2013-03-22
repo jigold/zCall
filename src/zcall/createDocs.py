@@ -33,27 +33,33 @@ def main():
         sys.stdout = open('/dev/null', 'w')
 
     localDir = os.path.dirname(os.path.realpath(__file__))
-    zcallDir = os.path.abspath(localDir+"/../zcall")
     sys.path.append(os.path.abspath(localDir+"/..")) # import from zcall dir
+    zcallDir = os.path.abspath(localDir+"/../zcall")
     outDir = os.path.abspath(args['out'])
     if not (os.access(outDir, os.W_OK) and os.path.isdir(outDir)):
         msg = "ERROR: Output path "+outDir+" is not a writable directory.\n"
         sys.stderr.write(msg)
         sys.exit(1)
-    os.chdir(outDir) # write html to createDocs.py directory
+    os.chdir(outDir)
     import zcall
     pydoc.writedoc(zcall)
     modules = set()
+    zcall = set()
+    scripts = []
     mf = ModuleFinder()
     for script in os.listdir(zcallDir):
         if re.search("\.py$", script) and script!="__init__.py":
             words = re.split("\.", script)
             words.pop()
-            name = (".".join(words))
-            modules.add("zcall."+name)
-            if recursive:
-                mf.run_script(os.path.join(zcallDir, script))
-                for name, mod in mf.modules.iteritems(): modules.add(name)
+            scriptName = (".".join(words)) # name without .py suffix
+            modules.add("zcall."+scriptName)
+            zcall.add(scriptName)
+            scripts.append(script)
+    if recursive:
+        for script in scripts:
+            mf.run_script(os.path.join(zcallDir, script))
+            for name, mod in mf.modules.iteritems(): 
+                if name not in zcall: modules.add(name)
     for module in modules:
         pydoc.writedoc(import_module(module))
 

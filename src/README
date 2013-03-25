@@ -3,7 +3,7 @@ zCall: A Rare Variant Caller for Array-Based Genotyping
 
 1. Overview
 
-zCall is a rare variant caller for array-based genotyping. This document focuses on the version-controlled scripts in the 'src' directory of zCall on github. For details on other implementations of zCall, see Section ?? (History).
+zCall is a rare variant caller for array-based genotyping. This document focuses on the version-controlled scripts in the 'src' directory of zCall on github. For details on other implementations of zCall, see Section 6 (History).
 
 2. Installation
 
@@ -41,7 +41,7 @@ Original zCall scripts, with .py filename extension omitted to prevent automatic
 
 Additional command-line scripts, run with -h or --help for usage: createDocs.py, plinkEquivalenceTest.py
 
-5. Data formats
+6. Data formats
 
 Input data consists of binary .GTC files, one for each sample. In addition, zCall requires an appropriate .egt cluster file and .bpm.csv manifest file for the Illumina beadchip being processed.
 

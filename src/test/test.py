@@ -80,11 +80,7 @@ class TestScripts(unittest.TestCase):
         print "Created output directory", self.outDir
         self.bpmPath = os.path.join(self.bigData, 'HumanExome-12v1_A.bpm.csv')
         self.egtPath = os.path.join(self.bigData, 'HumanExome-12v1.egt')
-        self.gtcPaths = []
-        # TODO generate json using self.bigData, instead of using hard-coded
         # TODO automatically generate threshold.txt files, if not present
-        for name in ('gtc00.json', 'gtc01.json'): 
-            self.gtcPaths.append(os.path.join(self.dataDir, name))
         self.gtcPath = os.path.join(self.dataDir, 'gtc.json')
         self.metricIndex = os.path.join(self.bigData,
                                         'evaluation_metric_index.json')

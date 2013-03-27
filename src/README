@@ -1,9 +1,10 @@
 zCall: A Rare Variant Caller for Array-Based Genotyping
 (Extended version)
 
+
 1. Overview
 
-This document covers the extended version of zCall, located in the 'src' directory on github. For other implementations, see Section 7 (History).
+This document covers the extended version of zCall, located in the 'src' directory on github. For other implementations, see Section 8 (History).
 
 2. Installation
 

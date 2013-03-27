@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--out', required=True,  metavar="PATH", 
                         help="Directory in which to write HTML output files.")
     parser.add_argument('--recursive', action='store_true', default=False,
-                        help="Recursively import documentation for dependencies. If not recursive, zcall documents will contain broken links to standard modules.")
+                        help="Recursively import documentation for dependencies. If not recursive, zcall documents will contain broken links to standard modules. Recursive mode generates approximately 180 HTML files comprising 6 MB of data.")
     parser.add_argument('--verbose', action='store_true', default=False,
                         help="Write pydoc information to stdout.")
     args = vars(parser.parse_args())

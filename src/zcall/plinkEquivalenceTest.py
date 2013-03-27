@@ -4,6 +4,8 @@
 
 Test datasets for equivalence within flip of major/minor alleles
 Use to validate test data for zcall
+
+Inputs: .bpm.csv path, and two Plink filename prefixes to compare
 """
 
 import re, struct, sys

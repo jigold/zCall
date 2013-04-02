@@ -23,7 +23,9 @@ class PlinkHandler:
         4 genotype calls are packed into one byte of output
         Returns a list of struct.pack strings corresponding to output bytes"""
         if len(calls) != self.snpTotal:
-            raise ValueError("Number of calls is not equal to SNP total!")
+            msg = "Number of calls %s is not equal to SNP total %s" % \
+                (len(calls), self.snpTotal)
+            raise ValueError(msg)
         if reorder:
             sortedCalls = [None]*self.snpTotal
             for i in range(self.snpTotal):
@@ -58,6 +60,25 @@ class PlinkHandler:
         byteString = ''.join(byte)
         byteString = byteString[::-1] # reverse order of string characters
         return int(byteString, 2)
+
+    def getSampleFields(self, sample):
+        """Get 6 sample metadata fields for .fam or .ped file
+
+        Fields are:
+        - Family ID
+        - Individual ID
+        - Paternal ID
+        - Maternal ID
+        - Sex (1=male; 2=female; other=unknown)
+        - Phenotype
+        Conventionally, set family/individual IDs to sample URI
+        Set sex if known
+        Other values set to -9 as placeholder"""
+        fields = ['-9']*6
+        fields[0] = sample['uri']
+        fields[1] = sample['uri']
+        fields[4] = str(sample['gender_code'])
+        return fields
 
     def numericChromosomes(self, chroms):
         """Convert to numeric chromosome IDs used by Plink"""
@@ -155,7 +176,7 @@ class PlinkHandler:
         out.close()
         if verbose: print len(output), "bytes written."
 
-    def writeBim(self, outPath, manifestNames=True):
+    def writeBim(self, outPath):
         """Write a Plink .bim file to accompany .bed output
 
         Similar to Plink .map format, except:
@@ -168,12 +189,8 @@ class PlinkHandler:
              snp = self.bpm.names[i]
              chr = self.bpm.chr[i]
              pos = self.bpm.pos[i]
-             if manifestNames:
-                 alleleA = self.bpm.A[i]
-                 alleleB = self.bpm.B[i]
-             else:
-                 alleleA = 'A'
-                 alleleB = 'B'
+             alleleA = self.bpm.A[i]
+             alleleB = self.bpm.B[i]
              out = [chr, snp, "0", pos, alleleA, alleleB]
              unsorted[i] = out
         # sort manifest entries
@@ -189,27 +206,55 @@ class PlinkHandler:
         outFile.close()
 
     def writeFam(self, sampleJson, outPath):
-        """Write a Plink .fam file to accompany .bed output
-
-        Contains information on each sample. Fields in .fam:
-        - Family ID
-        - Individual ID
-        - Paternal ID
-        - Maternal ID
-        - Sex (1=male; 2=female; other=unknown)
-        - Phenotype
-        Conventionally, set family/individual IDs to sample URI
-        Set sex if known
-        Other values set to -9 as placeholder
-        """
+        """Write a Plink .fam file to accompany .bed output"""
         samples = json.loads(open(sampleJson).read())
         outLines = []
         for sample in samples:
-            out = ['-9']*6
-            out[0] = sample['uri']
-            out[1] = sample['uri']
-            out[4] = str(sample['gender_code'])
-            outLines.append(' '.join(out)+"\n")
+            outLines.append(' '.join(self.getSampleFields(sample))+"\n")
+        outFile = open(outPath, 'w')
+        outFile.write("".join(outLines))
+        outFile.close()
+
+    def writeMap(self, outPath):
+        """Write Plink .map format file"""
+        outLines = []
+        for i in range(self.snpTotal):
+            snp = self.bpm.names[i]
+            chr = self.bpm.chr[i]
+            pos = self.bpm.pos[i]
+            out = [str(chr), str(snp), "0", str(pos)]
+            outLines.append("\t".join(out)+"\n")
+        outFile = open(outPath, 'w')
+        outFile.write("".join(outLines))
+        outFile.close()
+
+    def writePed(self, calls, sampleJson, outPath):
+        """Write Plink .ped format file.
+
+        Each line represents one sample.
+        First 6 fields are same as for .fam file, see writeFam() method.  
+        Subsequent fields are allele pairs, eg. 'G C' or 'A B'. 
+        If manifestNames==True then get allele symbols from manifest,
+        otherwise use A and B respectively for major and minor alleles."""
+        samples = json.loads(open(sampleJson).read())
+        outLines = []
+        if len(calls) % self.snpTotal !=0:
+            msg = "Number of calls %s is not a multiple of SNP total %s" % \
+                (len(calls), self.snpTotal)
+            raise ValueError(msg)
+        for i in range(len(samples)):
+            fields = self.getSampleFields(samples[i])
+            start = i * self.snpTotal
+            for j in range(self.snpTotal):
+                alleleA = self.bpm.A[j]
+                alleleB = self.bpm.B[j]
+                call = calls[start+j]
+                if call == 1: symbol = alleleA+' '+alleleA
+                elif call == 2: symbol = alleleA+' '+alleleB
+                elif call == 3: symbol = alleleB+' '+alleleB
+                else: symbol = "0 0"
+                fields.append(symbol)
+            outLines.append("\t".join(fields)+"\n")
         outFile = open(outPath, 'w')
         outFile.write("".join(outLines))
         outFile.close()

@@ -31,11 +31,12 @@ class ZCallComplete:
     def __init__(self, args):
         self.args = args
 
-    def call(self, bpm, egt, thresholdPath, sJson, outDir, prefix, verbose):
+    def call(self, bpm, egt, thresholdPath, sJson, outDir, prefix, binary,
+             verbose):
         if verbose: print "Running zcall with thresholds", thresholdPath
         logPath = os.path.join(outDir, self.LOG)
         caller = SampleCaller(bpm, egt, thresholdPath)
-        caller.run(sJson, outDir, prefix, logPath, verbose)
+        caller.run(sJson, outDir, prefix, logPath, binary, verbose)
 
     def evaluate(self, bpm, egt, thresholds, gtc, start, end, outDir, verbose):
         """Evaluate threshold.txt files by concordance and gain metrics"""
@@ -82,6 +83,7 @@ class ZCallComplete:
                   self.args['samples'],
                   self.args['out'],
                   self.args['plink'],
+                  self.args['binary'],
                   self.args['verbose'])
         
 
@@ -108,6 +110,8 @@ def parseArgs():
                         help="Directory for output; defaults to current working directory.")
     parser.add_argument('--plink', default='zcall', metavar="STRING", 
                         help="Prefix for Plink output files")
+    parser.add_argument('--binary', action='store_true', default=False,
+                        help="Write Plink binary output. If this option is not given, output is in Plink text format.")
     parser.add_argument('--zstart', metavar="INT", default=7, type=int,
                     help='Starting z score. Default = %(default)s')
     parser.add_argument('--ztotal', metavar="INT", default=1, type=int,

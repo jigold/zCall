@@ -47,8 +47,8 @@ class SampleCaller(CallingBase):
                 calls.append(origCall)
         return (calls, zcalls, gains)
 
-    def run(self, samplesPath, outDir, prefix, logPath=None, verbose=False, 
-            null=False, reorder=True):
+    def run(self, samplesPath, outDir, prefix, logPath=None, binary=False,
+            verbose=False, null=False, reorder=True):
         """Apply zCall to GTC files and write Plink .bed output"""
         gtcPaths = self.readSampleJson(samplesPath)
         calls = []
@@ -58,14 +58,20 @@ class SampleCaller(CallingBase):
         for gtcPath in gtcPaths:
             if verbose: print "Calling GTC file", gtcPath
             gtc = GTC(gtcPath, self.bpm.normID)
-            (callsRaw, zcalls, gains) = self.makeCalls(gtc, null)
+            (sampleCalls, zcalls, gains) = self.makeCalls(gtc, null)
+            if binary: calls.extend(ph.callsToBinary(sampleCalls, reorder))
+            else: calls.extend(sampleCalls)
             zcallTotal += zcalls
             gainsTotal += gains
-            calls.extend(ph.callsToBinary(callsRaw, reorder))
         outStem = os.path.join(outDir, prefix)
-        ph.writeBed(calls, outStem+'.bed', verbose)
-        ph.writeBim(outStem+'.bim')
-        ph.writeFam(samplesPath, outStem+'.fam')
+        if binary:
+            ph.writeBed(calls, outStem+'.bed', verbose)
+            ph.writeBim(outStem+'.bim')
+            ph.writeFam(samplesPath, outStem+'.fam')
+        else:
+            ph.writePed(calls, samplesPath, outStem+'.ped')
+            ph.writeMap(outStem+'.map')
+            ph.writeFam(samplesPath, outStem+'.fam')
         logData = { 'total_samples': len(gtcPaths),
                     'sample_json': samplesPath,
                     'plink_output': outStem,
@@ -78,7 +84,6 @@ class SampleCaller(CallingBase):
             log.write(json.dumps(logData, sort_keys=True,
                       indent=4, separators=(',', ': '))+"\n")
             log.close()
-
 
 def main():
     """Method to run as script from command line"""
@@ -96,6 +101,8 @@ def main():
                         help="Directory for output data")
     parser.add_argument('--plink', default='zcall', metavar="STRING", 
                         help="Prefix for Plink output files")
+    parser.add_argument('--binary', action='store_true', default=False,
+                        help="Write Plink binary output. If this option is not given, output is in Plink text format.")
     parser.add_argument('--log', metavar="PATH", default=None,
                         help="Path for .json log output. Defaults to zcall_log.json in same directory as Plink output.")
     parser.add_argument('--verbose', action='store_true', default=False,
@@ -121,8 +128,8 @@ def main():
     if args['null']:
         print "WARNING: Null option in effect, input calls will not be changed"
     caller = SampleCaller(args['bpm'], args['egt'], args['thresholds'])
-    caller.run(args['samples'], args['out'], args['plink'], args['log'], 
-               args['verbose'], args['null'])
+    caller.run(args['samples'], args['out'], args['plink'], args['log'],
+               args['binary'], args['verbose'], args['null'])
 
 if __name__ == "__main__":
     main()

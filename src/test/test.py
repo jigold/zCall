@@ -27,6 +27,40 @@ class TestScripts(unittest.TestCase):
 
     """Test command-line python scripts used in WTSI genotyping pipeline"""
 
+    def call(self, binary):
+        """Re-call GTC files using zCall and choice of output"""
+        outStem = os.path.join(self.outDir, self.prefix)
+        tPath = os.path.join(self.bigData, 'thresholds_HumanExome-12v1_z07.txt')
+        logPath = os.path.join(self.outDir, 'zcall_log.json')
+        args = ['zcall/runZCall.py',
+                '--thresholds', tPath,
+                '--bpm', self.bpmPath,
+                '--egt', self.egtPath,
+                '--samples', self.sampleJson,
+                '--out', self.outDir,
+                '--plink', self.prefix,
+                '--log', logPath,
+            ]
+        if binary: args.append('--binary')
+        self.assertEqual(os.system(' '.join(args)), 0) # run script
+        if binary:
+            suffixes = ['.bed', '.bim', '.fam']
+            expected = ['55fa3cfd960d43366cb506ab004ac300',
+                        '19dd8929cd63e3ee906e43b9bb59cd02',
+                        'b836bd45459de6a9bc4b8d92e8c9e298']
+        else:
+            suffixes = ['.ped', '.map', '.fam']
+            expected = ['731e0199b1433228abf80ec8126089d1',
+                        'df64da4ef76b2df1040df375a8933f45',
+                        'b836bd45459de6a9bc4b8d92e8c9e298']
+        for i in range(len(suffixes)):
+            self.assertTrue(os.path.exists(outStem+suffixes[i]))
+            checksum = self.getMD5hex(outStem+suffixes[i])
+            self.assertEqual(checksum, expected[i])  
+        self.assertTrue(os.path.exists(logPath))
+        self.validatePlink(self.prefix, binary)
+
+
     def getMD5hex(self, inPath):
         """Get MD5 checksum for contents of given file, in hex format"""
         m = md5()
@@ -56,11 +90,18 @@ class TestScripts(unittest.TestCase):
         for z in index.keys():
             self.assertEqual(self.getMD5hex(index[z]), self.expectedT[z])
 
-    def validatePlink(self, prefix):
+    def validatePlink(self, prefix, binary):
         """Check that Plink can parse dataset without crashing"""
         startDir = os.getcwd()
         os.chdir(self.outDir)
-        self.assertEqual(0, os.system('plink --bfile '+prefix+' > /dev/null'))
+        if binary: opt = '--bfile'
+        else: opt = '--file'
+        cmd = 'plink '+opt+' '+prefix+' > /dev/null'
+        try:
+            self.assertEqual(0, os.system(cmd))
+        except AssertionError:
+            os.chdir(startDir)
+            raise
         os.chdir(startDir)
 
     def setUp(self):
@@ -153,31 +194,13 @@ class TestScripts(unittest.TestCase):
         newT = resultsNew['BEST_THRESHOLDS'] # threshold.txt path
         self.assertEqual(self.expectedT["7"], self.getMD5hex(newT))
 
-    def test_call(self):
-        """Re-call GTC files using zCall"""
-        outStem = os.path.join(self.outDir, self.prefix)
-        tPath = os.path.join(self.bigData, 'thresholds_HumanExome-12v1_z07.txt')
-        logPath = os.path.join(self.outDir, 'zcall_log.json')
-        args = ['zcall/runZCall.py',
-                '--thresholds', tPath,
-                '--bpm', self.bpmPath,
-                '--egt', self.egtPath,
-                '--samples', self.sampleJson,
-                '--out', self.outDir,
-                '--plink', self.prefix,
-                '--log', logPath
-            ]
-        self.assertEqual(os.system(' '.join(args)), 0) # run script
-        suffixes = ['.bed', '.bim', '.fam']
-        expected = ['55fa3cfd960d43366cb506ab004ac300',
-                    '19dd8929cd63e3ee906e43b9bb59cd02',
-                    'b836bd45459de6a9bc4b8d92e8c9e298']
-        for i in range(len(suffixes)):
-            self.assertTrue(os.path.exists(outStem+suffixes[i]))
-            checksum = self.getMD5hex(outStem+suffixes[i])
-            self.assertEqual(checksum, expected[i])  
-        self.assertTrue(os.path.exists(logPath))
-        self.validatePlink(self.prefix)
+    def test_call_binary(self):
+        """Re-call GTC files using zCall with binary output"""
+        self.call(True)
+
+    def test_call_text(self):
+        """Re-call GTC files using zCall with text output"""
+        self.call(False)
 
     def test_complete(self):
         """Test self-contained zcall script"""
@@ -190,7 +213,8 @@ class TestScripts(unittest.TestCase):
                 '--zstart', str(zstart),
                 '--ztotal', str(ztotal),
                 '--samples', self.sampleJson,
-                '--plink', self.prefix
+                '--plink', self.prefix,
+                '--binary'
                 ]
         self.assertEqual(os.system(' '.join(args)), 0)
         outStem = os.path.join(self.outDir, self.prefix)
@@ -202,7 +226,7 @@ class TestScripts(unittest.TestCase):
             self.assertTrue(os.path.exists(outStem+suffixes[i]))
             checksum = self.getMD5hex(outStem+suffixes[i])
             self.assertEqual(checksum, expected[i])  
-        self.validatePlink(self.prefix)
+        self.validatePlink(self.prefix, True)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

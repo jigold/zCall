@@ -2,7 +2,8 @@
 zCall: A Rare Variant Caller for Array-Based Genotyping
 
 Author: Jackie Goldstein - jigold@broadinstitute.org
-Contact: Benjamin Neale - bneale@broadinstitute.org
+Contact (prototype): Benjamin Neale - bneale@broadinstitute.org
+Contact (extended): Iain Bancarz - ib5@sanger.ac.uk
 May 8th, 2012
 
 ***The Illumina provided Code was provided as-is and with no warranty as to performance and no warranty against it infringing any other party's intellectual property rights.
@@ -41,3 +42,10 @@ October 3rd, 2012:
 
 2. Added a new zip file to each folder with minor updates to README files. Also fixed a small bug in the calibrateZ.py script for Version 3 and the sampleConcordance.py script for Version 1. (The bug caused the script to get killed when there was an "NA" in the thresholds file) You can either download the latest zip file bundle for each version (VersionX.3) or just download the scripts with the bug fixes from the additionalScripts/ folder.
 
+January 25, 2013:
+
+Start of development on extended zCall by Iain Bancarz: ib5@sanger.ac.uk, https://github.com/iainrb/zCall/ .
+
+April 3, 2013:
+
+Fork of https://github.com/iainrb/zCall/ repository to https://github.com/wtsi-npg.  Initial merge of extended 'devel' branch into master, with tags for original and extended versions (0.1 and 0.2 respectively).

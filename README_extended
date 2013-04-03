@@ -26,12 +26,13 @@ Applying zCall consists of four steps:
   1. Generate candidate zscore threshold files
   2. Evaluate metrics on the input data for each candidate threshold
   3. Merge evaluation results and choose an optimal threshold for calling
-  4. Apply zCall using the chosen threshold to recall any 'no-calls' in 
+  4. Apply zCall using the chosen threshold to re-call any 'no-calls' in 
 the input data.
 
 4. Usage
 
-The user's PATH variable must include the path to the src/zcall directory.
+The user's PATH variable must include the path to the 'zcall' subdirectory of 
+the installation (or alternatively to src/zcall in the source code).
 
 Two approaches are supported:
   1. A self-contained script to run zCall from start to finish as a single 
@@ -42,6 +43,9 @@ mergeEvaluation.py, runZCall.py
 
 Any of these scripts can be run with -h or --help for detailed help and 
 usage information.
+
+The original authors of zCall recommend that samples which fail quality control 
+should be excluded from zCall calibration and re-calling.
 
 5. Other scripts and modules
 

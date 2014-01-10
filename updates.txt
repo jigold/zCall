@@ -41,3 +41,21 @@ October 3rd, 2012:
 
 2. Added a new zip file to each folder with minor updates to README files. Also fixed a small bug in the calibrateZ.py script for Version 3 and the sampleConcordance.py script for Version 1. (The bug caused the script to get killed when there was an "NA" in the thresholds file) You can either download the latest zip file bundle for each version (VersionX.3) or just download the scripts with the bug fixes from the additionalScripts/ folder.
 
+January 10th, 2014:
+
+The following applies to zCall_Version3.4_GenomeStudio.tgz:
+
+1. Fixed bugs where the ID name isn't output correctly if it contains periods or the SNP name contains "snp"
+
+2. Made the scripts more efficient
+
+3. Made the scripts compatible with a GenomeStudio report that has been gripped (ends with .gz)
+
+4. Added a script qcReport.py that filters out samples with a call rate less than a given threshold.
+example usage: python qcReport.py -R my.report -C 0.99 > my.qc.report
+
+-R is the original genome studio report
+-C is the call rate (0-1)
+output is a genome studio report with samples dropped if they have a low call rate
+
+
